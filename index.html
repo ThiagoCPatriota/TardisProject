@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="T.A.R.D.I.S. — Explore o Sistema Solar com gestos e mouse. Texturas 8K + Visão computacional + NASA API.">
+    <title>T.A.R.D.I.S. — Solar System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading">
+        <div class="loading-content">
+            <div class="loading-logo">T.A.R.D.I.S.</div>
+            <div class="loading-version">TIME AND RELATIVE DIMENSION IN SPACE</div>
+            <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+            <div class="loading-status" id="loading-status">INICIALIZANDO SISTEMAS...</div>
+        </div>
+    </div>
+
+    <!-- Camera & Canvas -->
+    <video id="input_video" playsinline></video>
+    <canvas id="output_canvas"></canvas>
+    <canvas id="skeleton_canvas"></canvas>
+
+    <!-- UI Layer -->
+    <div id="ui-layer">
+        <!-- Header -->
+        <div class="header-bar">
+            <div class="logo">T.A.R.D.I.S. <span class="logo-version">⚡</span></div>
+            <div class="mode-indicator">
+                <span class="mode-dot" id="mode-dot"></span>
+                <span id="current-mode" class="status-neutral">SISTEMA SOLAR</span>
+            </div>
+        </div>
+
+        <!-- Scene State Indicator -->
+        <div id="scene-breadcrumb">
+            <span class="bc-item active" id="bc-solar">☀ SISTEMA SOLAR</span>
+            <span class="bc-separator">›</span>
+            <span class="bc-item" id="bc-planet">🪐 PLANETA</span>
+            <span class="bc-separator">›</span>
+            <span class="bc-item" id="bc-surface">🌍 SUPERFÍCIE</span>
+        </div>
+
+        <!-- Crosshair -->
+        <div id="crosshair">
+            <div class="crosshair-ring"></div>
+            <div class="crosshair-dot"></div>
+        </div>
+        <div id="gps-data">LAT: 0.00 | LON: 0.00</div>
+
+        <!-- Controls Panel -->
+        <div id="controls-summary">
+            <div class="control-header">COMANDOS</div>
+            <div class="control-item"><span class="control-icon">✊</span><span class="key-desc">PUNHO: Mover</span></div>
+            <div class="control-item"><span class="control-icon">✋</span><span class="key-desc">PALMA: Escanear</span></div>
+            <div class="control-item"><span class="control-icon">✌️</span><span class="key-desc">PAZ: Zoom (+)</span></div>
+            <div class="control-item"><span class="control-icon">☝️</span><span class="key-desc">DEDO 1: Zoom (-)</span></div>
+            <div class="control-divider"></div>
+            <div class="control-item"><span class="control-icon">🖱️</span><span class="key-desc">ARRASTAR: Rotacionar</span></div>
+            <div class="control-item"><span class="control-icon">🔄</span><span class="key-desc">SCROLL: Zoom</span></div>
+        </div>
+
+        <!-- Planet Info Panel -->
+        <div id="info-panel">
+            <div class="info-badge" id="info-badge">PLANETA</div>
+            <div class="info-title" id="geo-name">--</div>
+            <div class="info-coord" id="geo-coord">--</div>
+            <div class="info-divider"></div>
+            <div class="info-desc" id="geo-details">--</div>
+            <div id="nasa-image-container" style="display:none;">
+                <div class="info-divider"></div>
+                <div class="nasa-label">📷 NASA IMAGE</div>
+                <img id="nasa-image" alt="NASA Image" />
+                <div class="nasa-caption" id="nasa-caption"></div>
+            </div>
+            <div id="landmark-info" style="display:none;">
+                <div class="info-divider"></div>
+                <div class="landmark-badge">📍 MARCO HISTÓRICO</div>
+                <div class="landmark-name" id="landmark-name"></div>
+                <div class="landmark-desc" id="landmark-desc"></div>
+            </div>
+            <div class="info-divider" id="detail-btn-divider" style="display:none;"></div>
+            <button id="detail-btn" style="display:none;">🔭 EXPLORAR DETALHES</button>
+        </div>
+
+        <!-- Planet Detail Modal -->
+        <div id="planet-detail-modal">
+            <div class="pdm-backdrop"></div>
+            <div class="pdm-container">
+                <div class="pdm-header">
+                    <div class="pdm-header-left">
+                        <div class="pdm-badge" id="pdm-badge">PLANETA</div>
+                        <h1 class="pdm-title" id="pdm-title">--</h1>
+                        <p class="pdm-subtitle" id="pdm-subtitle">--</p>
+                    </div>
+                    <button class="pdm-close" id="pdm-close">✕</button>
+                </div>
+
+                <div class="pdm-body">
+                    <!-- Stats Grid -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">📊 DADOS TÉCNICOS</h2>
+                        <div class="pdm-stats-grid" id="pdm-stats-grid"></div>
+                    </section>
+
+                    <!-- Description -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">📖 SOBRE</h2>
+                        <p class="pdm-description" id="pdm-description"></p>
+                    </section>
+
+                    <!-- Image Gallery -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">📷 GALERIA NASA</h2>
+                        <div class="pdm-gallery" id="pdm-gallery">
+                            <div class="pdm-gallery-loading">Carregando imagens da NASA...</div>
+                        </div>
+                    </section>
+
+                    <!-- Curiosities -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">💡 CURIOSIDADES</h2>
+                        <ul class="pdm-curiosities" id="pdm-curiosities"></ul>
+                    </section>
+
+                    <!-- Missions Timeline -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">🚀 MISSÕES RELACIONADAS</h2>
+                        <div class="pdm-timeline" id="pdm-timeline"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- NASA APOD — Imagem do Dia -->
+        <div id="apod-widget">
+            <div class="apod-widget-header">
+                <div class="apod-widget-header-left">
+                    <span class="apod-icon-pulse">🔭</span>
+                    <span class="apod-header-title">NASA — IMAGEM DO DIA</span>
+                </div>
+                <div class="apod-widget-date" id="apod-date"></div>
+            </div>
+            <div class="apod-image-wrapper" id="apod-image-wrapper">
+                <div class="apod-loading" id="apod-loading">
+                    <div class="apod-loading-ring"></div>
+                    <span>Carregando APOD...</span>
+                </div>
+                <img id="apod-image" alt="NASA Astronomy Picture of the Day" />
+                <div class="apod-image-overlay"></div>
+            </div>
+            <div class="apod-info">
+                <div class="apod-title" id="apod-title"></div>
+                <div class="apod-description" id="apod-description"></div>
+                <div class="apod-copyright" id="apod-copyright"></div>
+            </div>
+            <button class="apod-toggle" id="apod-toggle" title="Expandir / Minimizar">▲</button>
+        </div>
+
+        <!-- Transition Overlay -->
+        <div id="transition-overlay"></div>
+    </div>
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
