@@ -34,13 +34,15 @@
         <nav class="navbar" id="navbar">
             <div class="nav-left">
                 <div class="nav-logo">T.A.R.D.I.S. <span class="nav-logo-bolt">⚡</span></div>
-                <div class="nav-state">
-                    <span class="nav-state-dot" id="mode-dot"></span>
-                    <span class="nav-state-label" id="current-mode">SISTEMA SOLAR</span>
-                </div>
             </div>
 
             <div class="nav-center">
+                <!-- Breadcrumb (simplified: 2 states only) -->
+                <div id="scene-breadcrumb">
+                    <span class="bc-item active" id="bc-solar">☀ SISTEMA SOLAR</span>
+                    <span class="bc-separator">›</span>
+                    <span class="bc-item" id="bc-planet">🪐 PLANETA</span>
+                </div>
                 <!-- Adventure Button — primary CTA -->
                 <button class="nav-adventure-btn" id="guided-tour-btn" title="Iniciar Modo Aventura">
                     <span class="nav-adventure-icon">🌀</span>
@@ -62,12 +64,6 @@
             </div>
         </nav>
 
-        <!-- Breadcrumb (simplified: 2 states only) -->
-        <div id="scene-breadcrumb">
-            <span class="bc-item active" id="bc-solar">☀ SISTEMA SOLAR</span>
-            <span class="bc-separator">›</span>
-            <span class="bc-item" id="bc-planet">🪐 PLANETA</span>
-        </div>
 
         <!-- Controls Panel -->
         <div id="controls-summary">

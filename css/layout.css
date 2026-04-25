@@ -87,17 +87,24 @@
 }
 
 .nav-right { justify-content: flex-end; }
-.nav-center { flex: 0 0 auto; }
+.nav-center { 
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
 
 .nav-logo {
     font-family: var(--font-display);
-    font-size: 18px;
+    font-size: 26px;
     font-weight: 900;
-    letter-spacing: 3px;
+    letter-spacing: 4px;
     background: linear-gradient(135deg, var(--tardis-bright), var(--vortex));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 12px var(--tardis-glow));
+    filter: drop-shadow(0 0 14px var(--tardis-glow));
+    margin-top: -2px;
 }
 
 .nav-logo-bolt {
@@ -105,35 +112,6 @@
     opacity: 0.7;
 }
 
-.nav-state {
-    display: flex; align-items: center; gap: 6px;
-    font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 700;
-    background: var(--bg-panel);
-    padding: 6px 12px;
-    border-radius: 16px;
-    border: 1px solid var(--tardis-blue-dim);
-    backdrop-filter: blur(10px);
-    letter-spacing: 1px;
-}
-
-.nav-state-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--tardis-bright);
-    box-shadow: 0 0 8px var(--tardis-bright);
-    animation: dotPulse 2s ease-in-out infinite;
-}
-
-.nav-state-label {
-    color: var(--tardis-bright);
-}
-
-@keyframes dotPulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-}
 
 /* --- Adventure Button (Primary CTA) --- */
 .nav-adventure-btn {
@@ -236,9 +214,6 @@
 
 /* --- BREADCRUMB --- */
 #scene-breadcrumb {
-    position: absolute;
-    top: 80px; left: 50%;
-    transform: translateX(-50%);
     display: flex; align-items: center; gap: 8px;
     font-family: var(--font-display);
     font-size: 10px;
@@ -620,11 +595,11 @@
     opacity: 0.6;
 }
 
-/* === TABLET (max-width: 768px) === */
+/* === NOTEBOOK / TABLET (max-width: 1024px) === */
+@media (max-width: 1024px) {
     /* Header */
     .navbar { padding: 10px 14px; }
-    .nav-logo { font-size: 16px; letter-spacing: 2px; }
-    .nav-state { font-size: 9px; padding: 6px 12px; }
+    .nav-logo { font-size: 20px; letter-spacing: 3px; }
 
     /* Controls - hidden on touch devices */
     #controls-summary { display: none; }
@@ -633,7 +608,6 @@
     #scene-breadcrumb {
         font-size: 8px;
         padding: 6px 14px;
-        top: 68px;
     }
 
     /* Planet Selector */
@@ -654,8 +628,8 @@
         flex-wrap: nowrap;
     }
     .nav-logo {
-        font-size: 13px;
-        letter-spacing: 1.5px;
+        font-size: 16px;
+        letter-spacing: 2px;
     }
     .nav-state {
         font-size: 8px;
@@ -668,7 +642,6 @@
     #scene-breadcrumb {
         font-size: 7px;
         padding: 5px 10px;
-        top: 60px;
         gap: 4px;
     }
 
@@ -699,8 +672,8 @@
 }
 @media (max-height: 500px) and (orientation: landscape) {
     .navbar { padding: 6px 10px; }
-    .nav-logo { font-size: 12px; }
-    #scene-breadcrumb { top: 52px; font-size: 7px; }
+    .nav-logo { font-size: 14px; }
+    #scene-breadcrumb { font-size: 7px; }
     #info-panel {
     #planet-selector { bottom: 6px; }
     .ps-item { min-width: 28px; padding: 3px; }
@@ -708,7 +681,7 @@
 }
 @media (max-width: 768px) {
     .navbar { padding: 8px 14px; }
-    .nav-logo { font-size: 14px; letter-spacing: 2px; }
+    .nav-logo { font-size: 18px; letter-spacing: 2px; }
     .nav-state { font-size: 8px; padding: 5px 10px; }
 
     .nav-adventure-btn {
@@ -720,7 +693,7 @@
 
     .nav-badges, .nav-profile { padding: 6px 10px; font-size: 9px; }
 
-    #scene-breadcrumb { top: 68px; font-size: 9px; padding: 5px 14px; }
+    #scene-breadcrumb { font-size: 9px; padding: 5px 14px; }
     #controls-summary { display: none; }
 
     #fps-monitor { width: 100px; bottom: 12px; right: 12px; padding: 6px; }
@@ -729,7 +702,7 @@
 
 @media (max-width: 480px) {
     .navbar { padding: 6px 10px; }
-    .nav-logo { font-size: 12px; }
+    .nav-logo { font-size: 16px; }
     .nav-state { display: none; }
 
     .nav-adventure-btn {
@@ -744,7 +717,7 @@
     .nav-badges-count { display: none; }
     .nav-profile { display: none; }
 
-    #scene-breadcrumb { top: 60px; font-size: 8px; }
+    #scene-breadcrumb { font-size: 8px; }
 
     #fps-monitor { width: 90px; bottom: 8px; right: 8px; padding: 5px; border-radius: 8px; }
     .fps-value { font-size: 14px; }

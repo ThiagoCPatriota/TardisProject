@@ -1,16 +1,21 @@
 /* =============================================
-   FULLSCREEN QUIZ OVERLAY
+   FULLSCREEN QUIZ OVERLAY — DOCTOR WHO EDITION
+   Top: Doctor + Speech Bubble (unified header)
+   Center: Interactive 3D Planet Viewer
+   Bottom: Quiz question + answer options
    ============================================= */
 
+/* === BASE OVERLAY === */
 .quiz-overlay {
     position: fixed; inset: 0;
     z-index: 50;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(2, 6, 18, 0.85);
-    backdrop-filter: blur(12px);
+    background: rgba(2, 6, 18, 0.92);
+    backdrop-filter: blur(20px);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: hidden;
 }
 
 .quiz-overlay.active {
@@ -22,36 +27,161 @@ body.quiz-active #controls-summary,
 body.quiz-active #apod-widget,
 body.quiz-active #info-panel,
 body.quiz-active #planet-selector {
-    opacity: 0.15;
+    opacity: 0.1;
     pointer-events: none;
+    transition: opacity 0.5s ease;
 }
 
+/* === MAIN CONTAINER (vertical stack) === */
 .quiz-container {
-    width: 90%;
-    max-width: 680px;
-    max-height: 90vh;
+    width: 100%;
+    max-width: 960px;
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 0 20px 30px;
-    overflow-y: auto;
-    animation: quizSlideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    padding: 16px 24px 20px;
+    gap: 0;
+    overflow: hidden;
+    animation: quizFadeIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.quiz-overlay.active .quiz-container {
-    animation: quizSlideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+@keyframes quizFadeIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes quizSlideIn {
-    from { opacity: 0; transform: translateY(40px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
+/* ==============================================
+   SECTION 1 — TOP: Doctor Header + Speech Bubble
+   ============================================== */
 
-/* Progress Bar */
-.quiz-progress {
+.quiz-top-header {
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+    flex-shrink: 0;
     position: relative;
-    width: 100%;
-    height: 6px;
+    min-height: 130px;
+    max-height: 180px;
+    animation: headerSlideIn 0.6s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes headerSlideIn {
+    from { opacity: 0; transform: translateX(-30px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Doctor Block (sprite + nametag) */
+.quiz-doctor-block {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 140px;
+    z-index: 2;
+}
+
+.quiz-doctor-sprite {
+    width: 130px;
+    height: auto;
+    max-height: 150px;
+    object-fit: contain;
+    object-position: bottom center;
+    filter: drop-shadow(0 0 20px rgba(123, 47, 190, 0.4))
+            drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+    image-rendering: auto;
+    pointer-events: none;
+    animation: doctorPopIn 0.5s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes doctorPopIn {
+    from { opacity: 0; transform: scale(0.7) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.quiz-doctor-nametag {
+    font-family: var(--font-display);
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: var(--vortex-light);
+    text-transform: uppercase;
+    margin-top: 4px;
+    opacity: 0.7;
+    text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+/* Speech Bubble (Glassmorphism) */
+.quiz-speech-bubble {
+    position: relative;
+    flex: 1;
+    min-height: 70px;
+    background: rgba(168, 85, 247, 0.05);
+    border: 1px solid rgba(168, 85, 247, 0.15);
+    border-radius: 4px 18px 18px 18px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    margin-left: -8px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(168, 85, 247, 0.08);
+    animation: bubbleFadeIn 0.5s 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    cursor: pointer;
+}
+
+@keyframes bubbleFadeIn {
+    from { opacity: 0; transform: scale(0.95) translateX(-8px); }
+    to   { opacity: 1; transform: scale(1) translateX(0); }
+}
+
+/* Tail pointing to Doctor */
+.quiz-speech-tail {
+    position: absolute;
+    left: -10px; bottom: 28px;
+    width: 0; height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 10px solid rgba(168, 85, 247, 0.15);
+}
+
+.quiz-speech-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-weight: 300;
+    min-height: 20px;
+}
+
+/* Typewriter cursor */
+.quiz-speech-text.typing::after {
+    content: '▍';
+    color: var(--vortex-light);
+    animation: cursorBlink 0.7s step-end infinite;
+    margin-left: 2px;
+}
+
+@keyframes cursorBlink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0; }
+}
+
+/* ==============================================
+   SECTION 2 — MIDDLE BAR: Progress + Score
+   ============================================== */
+
+.quiz-status-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    padding: 10px 0;
+}
+
+.quiz-progress {
+    flex: 1;
+    position: relative;
+    height: 5px;
     background: rgba(255,255,255,0.06);
     border-radius: 6px;
     overflow: visible;
@@ -63,18 +193,18 @@ body.quiz-active #planet-selector {
     background: linear-gradient(90deg, var(--vortex), var(--vortex-light), var(--tardis-bright));
     border-radius: 6px;
     transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-    box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
 }
 
 .quiz-progress-planets {
-    position: absolute; top: 12px; left: 0; right: 0;
+    position: absolute; top: 10px; left: 0; right: 0;
     display: flex; justify-content: space-between;
-    padding: 0 4px;
+    padding: 0 2px;
 }
 
 .quiz-pp {
-    font-size: 14px;
-    opacity: 0.3;
+    font-size: 12px;
+    opacity: 0.25;
     transition: all 0.3s ease;
     filter: grayscale(1);
 }
@@ -82,45 +212,43 @@ body.quiz-active #planet-selector {
 .quiz-pp.correct {
     opacity: 1;
     filter: grayscale(0);
-    transform: scale(1.2);
+    transform: scale(1.3);
 }
 
-/* Header */
-.quiz-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 24px;
+.quiz-pp.wrong {
+    opacity: 0.5;
+    filter: grayscale(0) hue-rotate(320deg) brightness(1.2);
 }
 
-.quiz-header-left {
-    display: flex; gap: 20px; align-items: center;
+.quiz-status-stats {
+    display: flex; gap: 16px; align-items: center;
+    flex-shrink: 0;
 }
 
 .quiz-score-display, .quiz-step-display {
     display: flex; flex-direction: column; align-items: center;
-    gap: 2px;
+    gap: 1px;
 }
 
 .quiz-score-label, .quiz-step-label {
     font-family: var(--font-display);
-    font-size: 7px;
+    font-size: 6px;
     letter-spacing: 2px;
     color: var(--text-secondary);
-    opacity: 0.5;
+    opacity: 0.45;
 }
 
 .quiz-score-value {
     font-family: var(--font-display);
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 900;
     color: var(--lamp-gold);
-    text-shadow: 0 0 20px rgba(255, 200, 0, 0.3);
+    text-shadow: 0 0 16px rgba(255, 200, 0, 0.25);
 }
 
 .quiz-step-value {
     font-family: var(--font-display);
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--vortex-light);
     letter-spacing: 1px;
@@ -130,12 +258,13 @@ body.quiz-active #planet-selector {
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.1);
     color: var(--text-secondary);
-    width: 40px; height: 40px;
+    width: 36px; height: 36px;
     border-radius: 50%;
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.25s ease;
+    flex-shrink: 0;
 }
 
 .quiz-close:hover {
@@ -144,97 +273,86 @@ body.quiz-active #planet-selector {
     color: #ff6666;
 }
 
-/* Doctor Speech Container */
-.quiz-doctor-container {
-    display: flex; align-items: flex-start; gap: 14px;
-}
+/* ==============================================
+   SECTION 3 — CENTER: 3D Planet Viewer
+   ============================================== */
 
-.quiz-doctor-avatar {
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--vortex), var(--vortex-light));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 26px;
-    box-shadow: 0 0 20px rgba(123, 47, 190, 0.4);
-    flex-shrink: 0;
-    animation: doctorPulse 3s ease-in-out infinite;
-}
-
-@keyframes doctorPulse {
-    0%, 100% { box-shadow: 0 0 16px rgba(123, 47, 190, 0.4); }
-    50% { box-shadow: 0 0 28px rgba(123, 47, 190, 0.6), 0 0 50px rgba(168, 85, 247, 0.15); }
-}
-
-.quiz-doctor-speech {
-    position: relative;
+.quiz-planet-viewer {
     flex: 1;
-    background: rgba(168, 85, 247, 0.06);
-    border: 1px solid rgba(168, 85, 247, 0.15);
-    border-radius: 0 16px 16px 16px;
-    padding: 14px 18px;
+    min-height: 0;
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    background: radial-gradient(ellipse at center, rgba(123, 47, 190, 0.06) 0%, transparent 70%);
+    border: 1px solid rgba(255,255,255,0.04);
+    animation: viewerFadeIn 0.5s 0.4s ease both;
 }
 
-.quiz-doctor-tail {
+@keyframes viewerFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.quiz-planet-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    cursor: grab;
+}
+
+/* Planet name badge overlaid on the viewer */
+.quiz-planet-overlay-badge {
     position: absolute;
-    left: -8px; top: 14px;
-    width: 0; height: 0;
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
-    border-right: 8px solid rgba(168, 85, 247, 0.15);
+    top: 12px; left: 16px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px;
+    background: rgba(2, 5, 16, 0.7);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    z-index: 2;
 }
 
-.quiz-doctor-text {
-    font-size: 14px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    font-weight: 300;
-}
-
-.quiz-text-animate {
-    animation: quizTextFade 0.5s ease both;
-}
-
-@keyframes quizTextFade {
-    from { opacity: 0; transform: translateX(-6px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* Planet Badge */
-.quiz-planet-badge {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 18px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
-    align-self: flex-start;
-}
-
-.quiz-planet-icon { font-size: 24px; }
+.quiz-planet-icon { font-size: 20px; }
 
 .quiz-planet-name {
     font-family: var(--font-display);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 2px;
     color: var(--text-primary);
 }
 
-/* Question Area */
-.quiz-question-area {
-    animation: quizQuestionIn 0.5s ease both;
+/* Drag hint */
+.quiz-viewer-hint {
+    position: absolute;
+    bottom: 10px; right: 14px;
+    font-family: var(--font-display);
+    font-size: 7px;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
+    opacity: 0.35;
+    z-index: 2;
+    pointer-events: none;
 }
 
-@keyframes quizQuestionIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
+/* ==============================================
+   SECTION 4 — BOTTOM: Question + Options
+   ============================================== */
+
+.quiz-bottom-section {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 12px;
 }
 
 .quiz-question-text {
     font-family: var(--font-display);
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 16px;
     line-height: 1.6;
     letter-spacing: 0.3px;
 }
@@ -242,7 +360,7 @@ body.quiz-active #planet-selector {
 .quiz-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 10px;
 }
 
 .quiz-option {
@@ -252,7 +370,7 @@ body.quiz-active #planet-selector {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     cursor: pointer;
     transition: all 0.25s ease;
     text-align: center;
@@ -287,39 +405,39 @@ body.quiz-active #planet-selector {
 }
 
 @keyframes correctPop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.06); }
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.06); }
     100% { transform: scale(1); }
 }
 
 @keyframes wrongShake {
     0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-5px); }
-    40% { transform: translateX(5px); }
-    60% { transform: translateX(-3px); }
-    80% { transform: translateX(3px); }
+    20%      { transform: translateX(-5px); }
+    40%      { transform: translateX(5px); }
+    60%      { transform: translateX(-3px); }
+    80%      { transform: translateX(3px); }
 }
 
-/* Hint */
+/* === HINT === */
 .quiz-hint {
     display: flex; align-items: center; gap: 8px;
-    padding: 10px 16px;
+    padding: 8px 14px;
     background: rgba(255, 200, 0, 0.04);
     border: 1px solid rgba(255, 200, 0, 0.1);
     border-radius: 10px;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--lamp-gold);
     opacity: 0.7;
 }
 
-.quiz-hint-icon { font-size: 16px; }
+.quiz-hint-icon { font-size: 14px; }
 
-/* Feedback */
+/* === FEEDBACK === */
 .quiz-feedback {
     font-family: var(--font-display);
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 1px;
-    padding: 12px 18px;
+    padding: 10px 16px;
     border-radius: 10px;
     text-align: center;
     animation: feedbackFadeIn 0.3s ease;
@@ -327,7 +445,7 @@ body.quiz-active #planet-selector {
 
 @keyframes feedbackFadeIn {
     from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+    to   { opacity: 1; transform: scale(1); }
 }
 
 .quiz-feedback-correct {
@@ -342,12 +460,12 @@ body.quiz-active #planet-selector {
     color: #ff6666;
 }
 
-/* Action Button */
+/* === ACTION BUTTON === */
 .quiz-action-btn {
     width: 100%;
-    padding: 16px 24px;
+    padding: 14px 24px;
     font-family: var(--font-display);
-    font-size: 12px;
+    font-size: 11px;
     letter-spacing: 2.5px;
     font-weight: 700;
     color: #fff;
@@ -366,60 +484,63 @@ body.quiz-active #planet-selector {
     filter: brightness(1.1);
 }
 
-/* Completion Screen */
+/* ==============================================
+   COMPLETION SCREEN
+   ============================================== */
+
 .quiz-completion {
     text-align: center;
     padding: 20px 0;
 }
 
 .quiz-completion-trophy {
-    font-size: 64px;
+    font-size: 56px;
     animation: trophyBounce 1s ease both;
 }
 
 @keyframes trophyBounce {
-    0% { transform: scale(0) rotate(-20deg); }
-    50% { transform: scale(1.3) rotate(5deg); }
+    0%   { transform: scale(0) rotate(-20deg); }
+    50%  { transform: scale(1.3) rotate(5deg); }
     100% { transform: scale(1) rotate(0); }
 }
 
 .quiz-completion-title {
     font-family: var(--font-display);
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 900;
     letter-spacing: 4px;
     background: linear-gradient(135deg, var(--lamp-gold), #ff8800, var(--lamp-gold));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin: 16px 0 8px;
+    margin: 14px 0 6px;
 }
 
 .quiz-completion-score {
     font-family: var(--font-display);
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-secondary);
     letter-spacing: 2px;
 }
 
 .quiz-completion-badges {
-    display: flex; justify-content: center; gap: 16px;
-    margin: 24px 0;
+    display: flex; justify-content: center; gap: 14px;
+    margin: 20px 0;
     flex-wrap: wrap;
 }
 
 .quiz-completion-badge {
     display: flex; align-items: center; gap: 8px;
-    padding: 10px 18px;
+    padding: 8px 16px;
     background: rgba(255, 200, 0, 0.08);
     border: 1px solid rgba(255, 200, 0, 0.2);
     border-radius: 12px;
     animation: badgeAppear 0.5s ease both;
 }
 
-.qcb-icon { font-size: 24px; }
+.qcb-icon { font-size: 22px; }
 .qcb-name {
     font-family: var(--font-display);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1px;
     color: var(--lamp-gold);
@@ -427,37 +548,89 @@ body.quiz-active #planet-selector {
 
 @keyframes badgeAppear {
     from { opacity: 0; transform: scale(0.5) rotate(-10deg); }
-    to { opacity: 1; transform: scale(1) rotate(0); }
+    to   { opacity: 1; transform: scale(1) rotate(0); }
 }
 
 .quiz-completion-hint {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
     opacity: 0.5;
-    margin-top: 16px;
+    margin-top: 14px;
     letter-spacing: 0.5px;
 }
 
+
+/* ==============================================
+   RESPONSIVE — TABLETS / NOTEBOOKS
+   ============================================== */
+
+@media (max-width: 1024px) {
+    .quiz-container {
+        max-width: 100%;
+        padding: 12px 18px 16px;
+    }
+
+    .quiz-doctor-block { width: 120px; }
+    .quiz-doctor-sprite { width: 110px; max-height: 130px; }
+}
+
+/* ==============================================
+   RESPONSIVE — MOBILE
+   ============================================== */
+
 @media (max-width: 768px) {
-    .quiz-container { max-width: 100%; padding: 0 12px 20px; }
+    .quiz-container { padding: 10px 14px 14px; }
+
+    .quiz-top-header {
+        min-height: 100px;
+        max-height: 130px;
+    }
+
+    .quiz-doctor-block { width: 90px; }
+    .quiz-doctor-sprite { width: 80px; max-height: 110px; }
+    .quiz-doctor-nametag { font-size: 6px; letter-spacing: 2px; }
+
+    .quiz-speech-text { font-size: 12px; }
+    .quiz-speech-bubble { padding: 12px 14px; margin-bottom: 12px; }
+
     .quiz-options { grid-template-columns: 1fr; }
-    .quiz-question-text { font-size: 14px; }
-    .quiz-doctor-avatar { width: 40px; height: 40px; font-size: 20px; }
-    .quiz-doctor-text { font-size: 12px; }
+    .quiz-question-text { font-size: 13px; }
+    .quiz-score-value { font-size: 20px; }
+    .quiz-step-value { font-size: 12px; }
+}
 
 @media (max-width: 480px) {
-    .quiz-score-value { font-size: 22px; }
-    .quiz-step-value { font-size: 13px; }
-    .quiz-planet-name { font-size: 12px; }
-    .quiz-option { font-size: 12px; padding: 12px; }
+    .quiz-top-header { min-height: 80px; max-height: 110px; }
+
+    .quiz-doctor-block { width: 70px; }
+    .quiz-doctor-sprite { width: 65px; max-height: 90px; }
+    .quiz-doctor-nametag { display: none; }
+
+    .quiz-speech-text { font-size: 11px; line-height: 1.5; }
+    .quiz-option { font-size: 12px; padding: 10px; }
+
+    .quiz-planet-viewer { border-radius: 10px; }
 }
+
+/* === Landscape phones === */
 @media (max-height: 500px) and (orientation: landscape) {
-    .quiz-container { max-height: 85vh; gap: 12px; }
-    .quiz-doctor-container { display: none; }
+    .quiz-container { padding: 8px 12px; }
+
+    .quiz-top-header { max-height: 100px; min-height: 60px; }
+    .quiz-doctor-sprite { max-height: 85px; width: 70px; }
+
+    .quiz-planet-viewer { min-height: 100px; }
+
+    .quiz-question-text { font-size: 12px; }
+    .quiz-option { padding: 8px 10px; font-size: 11px; }
+    .quiz-action-btn { padding: 10px 20px; font-size: 10px; }
 }
-@media (max-height: 800px) {
-    .quiz-container { gap: 14px; }
-    .quiz-doctor-text { font-size: 12px; }
+
+/* === Short screens (desktop) === */
+@media (max-height: 700px) and (min-width: 769px) {
+    .quiz-top-header { max-height: 140px; }
+    .quiz-doctor-sprite { max-height: 120px; }
+    .quiz-speech-text { font-size: 12px; }
     .quiz-question-text { font-size: 14px; }
-    .quiz-option { padding: 10px 14px; font-size: 12px; }
+    .quiz-option { padding: 10px 12px; font-size: 12px; }
 }

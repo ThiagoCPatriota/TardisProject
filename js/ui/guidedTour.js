@@ -1,14 +1,18 @@
 // ============================================
 // T.A.R.D.I.S. — GUIDED TOUR (Fullscreen Quiz)
-// Gamified fullscreen quiz with dynamic questions,
-// badge achievements, and Doctor character container
+// Immersive Doctor Who quiz experience with:
+//   - Unified Doctor header + speech bubble
+//   - Inline 3D planet viewer (lazy-loaded)
+//   - Typewriter text engine
+//   - localStorage persistence
+//   - Main render loop pause for performance
 // ============================================
 import { PLANETS_DATA } from '../data/planetsData.js';
 import { PLANET_DETAILS_DATA } from '../data/planetDetails.js';
 import { navigateToPlanet } from '../camera/cameraController.js';
 import { showPlanetInfo, hideInfoPanel } from './infoPanel.js';
 import { highlightPlanetSelector, hidePlanetSelector, showPlanetSelector } from './planetSelector.js';
-import { generateDailyQuestions, PLANET_ICONS } from './questionGenerator.js';
+import { PLANET_ICONS } from './questionGenerator.js';
 
 // --- STATE ---
 let guidedModeActive = false;
@@ -18,12 +22,20 @@ let score = 0;
 let questions = [];
 let hasAnswered = false;
 let badgesEarned = 0;
+let progressHistory = [];
 let overlay = null;
 let adventureBtn = null;
+let typewriterTimer = null;
+
+// Lazy-loaded modules
+let planetViewer = null;
+let questionGenerator = null;
 
 // Callbacks
 let onTourEnterPlanet = null;
 let onTourExitToSolar = null;
+let onPauseMainRender = null;
+let onResumeMainRender = null;
 
 // --- BADGES ---
 const BADGE_DEFINITIONS = [
@@ -32,12 +44,35 @@ const BADGE_DEFINITIONS = [
     { id: 'scholar', name: 'Estudioso Estelar', desc: 'Acertou mais de 7 perguntas', icon: '📚', threshold: 7 }
 ];
 
+// --- DOCTOR DIALOGUE ---
+const DOCTOR_INTRO = 'Olá! Eu sou o Doutor. Pronto para explorar os segredos do tempo e do espaço comigo?';
+
+const DOCTOR_CORRECT = [
+    p => `Fantástico! Você realmente conhece ${p}! Allons-y!`,
+    p => `Brilhante! Sabia que você acertaria sobre ${p}!`,
+    p => `Magnífico! O conhecimento sobre ${p} é forte em você!`,
+    p => `Geronimo! Resposta perfeita sobre ${p}! Próxima parada!`
+];
+
+const DOCTOR_WRONG = [
+    h => `Hmm, não é essa. ${h}`,
+    h => `Quase! Tente de novo. ${h}`,
+    h => `Não exatamente... Uma dica: ${h}`
+];
+
+const DOCTOR_PLANET_INTRO = [
+    (p, fact) => `Agora estamos em ${p}! ${fact} Pronto para o desafio?`,
+    (p, fact) => `${p}... fascinante! ${fact} Vamos testar?`,
+    (p, fact) => `Ah, ${p}! ${fact} Responda com sabedoria!`
+];
+
 // --- PUBLIC API ---
 export const initGuidedTour = (callbacks) => {
     onTourEnterPlanet = callbacks?.enterPlanet || null;
     onTourExitToSolar = callbacks?.exitPlanet || null;
+    onPauseMainRender = callbacks?.pauseRender || null;
+    onResumeMainRender = callbacks?.resumeRender || null;
 
-    // Adventure button is now in the HTML navbar
     adventureBtn = document.getElementById('guided-tour-btn');
     if (adventureBtn) {
         adventureBtn.addEventListener('click', async () => {
@@ -51,6 +86,47 @@ export const initGuidedTour = (callbacks) => {
 export const isGuidedModeActive = () => guidedModeActive;
 
 // =============================================
+// TYPEWRITER ENGINE
+// =============================================
+
+const typewriterEffect = (element, text, speed = 28, callback = null) => {
+    if (typewriterTimer) {
+        clearInterval(typewriterTimer);
+        typewriterTimer = null;
+    }
+
+    element.textContent = '';
+    element.classList.add('typing');
+    let charIndex = 0;
+
+    typewriterEffect._skipFn = () => {
+        clearInterval(typewriterTimer);
+        typewriterTimer = null;
+        element.textContent = text;
+        element.classList.remove('typing');
+        typewriterEffect._skipFn = null;
+        if (callback) callback();
+    };
+
+    typewriterTimer = setInterval(() => {
+        if (charIndex < text.length) {
+            element.textContent += text.charAt(charIndex);
+            charIndex++;
+        } else {
+            clearInterval(typewriterTimer);
+            typewriterTimer = null;
+            element.classList.remove('typing');
+            typewriterEffect._skipFn = null;
+            if (callback) callback();
+        }
+    }, speed);
+};
+
+const skipTypewriter = () => {
+    if (typewriterEffect._skipFn) typewriterEffect._skipFn();
+};
+
+// =============================================
 // FULLSCREEN OVERLAY — DOM CREATION
 // =============================================
 
@@ -60,15 +136,31 @@ const createOverlay = () => {
     overlay.className = 'quiz-overlay';
     overlay.innerHTML = `
         <div class="quiz-container">
-            <!-- Progress Bar -->
-            <div class="quiz-progress">
-                <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
-                <div class="quiz-progress-planets" id="quiz-progress-planets"></div>
+            <!-- SECTION 1: Doctor Header + Speech Bubble -->
+            <div class="quiz-top-header">
+                <div class="quiz-doctor-block">
+                    <img
+                        class="quiz-doctor-sprite"
+                        src="sprites/Doctorwho.png"
+                        alt="The Doctor"
+                    />
+                    <div class="quiz-doctor-nametag">THE DOCTOR</div>
+                </div>
+                <div class="quiz-speech-bubble" id="quiz-speech-bubble">
+                    <div class="quiz-speech-text" id="quiz-speech-text">
+                        Preparado para uma aventura pelo Sistema Solar?
+                    </div>
+                    <div class="quiz-speech-tail"></div>
+                </div>
             </div>
 
-            <!-- Header -->
-            <div class="quiz-header">
-                <div class="quiz-header-left">
+            <!-- SECTION 2: Status Bar (Progress + Score + Close) -->
+            <div class="quiz-status-bar">
+                <div class="quiz-progress">
+                    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+                    <div class="quiz-progress-planets" id="quiz-progress-planets"></div>
+                </div>
+                <div class="quiz-status-stats">
                     <div class="quiz-score-display">
                         <span class="quiz-score-label">PONTUAÇÃO</span>
                         <span class="quiz-score-value" id="quiz-score">0</span>
@@ -77,46 +169,37 @@ const createOverlay = () => {
                         <span class="quiz-step-label">PERGUNTA</span>
                         <span class="quiz-step-value" id="quiz-step">1/9</span>
                     </div>
-                </div>
-                <button class="quiz-close" id="quiz-close" title="Encerrar Quiz">✕</button>
-            </div>
-
-            <!-- Doctor Speech Container (prepared for future character) -->
-            <div class="quiz-doctor-container" id="quiz-doctor-container">
-                <div class="quiz-doctor-avatar">🧥</div>
-                <div class="quiz-doctor-speech" id="quiz-doctor-speech">
-                    <div class="quiz-doctor-text" id="quiz-doctor-text">
-                        Preparado para uma aventura pelo Sistema Solar?
-                    </div>
-                    <div class="quiz-doctor-tail"></div>
+                    <button class="quiz-close" id="quiz-close" title="Encerrar Quiz">✕</button>
                 </div>
             </div>
 
-            <!-- Planet Badge -->
-            <div class="quiz-planet-badge" id="quiz-planet-badge">
-                <span class="quiz-planet-icon" id="quiz-planet-icon">🪐</span>
-                <span class="quiz-planet-name" id="quiz-planet-name">--</span>
+            <!-- SECTION 3: 3D Planet Viewer -->
+            <div class="quiz-planet-viewer" id="quiz-planet-viewer">
+                <div class="quiz-planet-overlay-badge" id="quiz-planet-badge">
+                    <span class="quiz-planet-icon" id="quiz-planet-icon">🪐</span>
+                    <span class="quiz-planet-name" id="quiz-planet-name">--</span>
+                </div>
+                <div class="quiz-viewer-hint">🖱️ ARRASTAR PARA GIRAR</div>
             </div>
 
-            <!-- Question Area -->
-            <div class="quiz-question-area" id="quiz-question-area">
-                <div class="quiz-question-text" id="quiz-question-text">--</div>
-                <div class="quiz-options" id="quiz-options"></div>
+            <!-- SECTION 4: Question + Options -->
+            <div class="quiz-bottom-section" id="quiz-bottom-section">
+                <div class="quiz-question-area" id="quiz-question-area">
+                    <div class="quiz-question-text" id="quiz-question-text">--</div>
+                    <div class="quiz-options" id="quiz-options"></div>
+                </div>
+
+                <div class="quiz-hint" id="quiz-hint" style="display:none;">
+                    <span class="quiz-hint-icon">💡</span>
+                    <span class="quiz-hint-text" id="quiz-hint-text"></span>
+                </div>
+
+                <div class="quiz-feedback" id="quiz-feedback" style="display:none;"></div>
+
+                <button class="quiz-action-btn" id="quiz-action-btn" style="display:none;">
+                    PRÓXIMO PLANETA →
+                </button>
             </div>
-
-            <!-- Hint -->
-            <div class="quiz-hint" id="quiz-hint" style="display:none;">
-                <span class="quiz-hint-icon">💡</span>
-                <span class="quiz-hint-text" id="quiz-hint-text"></span>
-            </div>
-
-            <!-- Feedback -->
-            <div class="quiz-feedback" id="quiz-feedback" style="display:none;"></div>
-
-            <!-- Action Button -->
-            <button class="quiz-action-btn" id="quiz-action-btn" style="display:none;">
-                PRÓXIMO PLANETA →
-            </button>
         </div>
     `;
 
@@ -125,8 +208,8 @@ const createOverlay = () => {
     // Wire events
     document.getElementById('quiz-close').addEventListener('click', endTour);
     document.getElementById('quiz-action-btn').addEventListener('click', advanceStep);
+    document.getElementById('quiz-speech-bubble').addEventListener('click', skipTypewriter);
 
-    // Build progress planet dots
     buildProgressPlanets();
 };
 
@@ -141,27 +224,70 @@ const buildProgressPlanets = () => {
 };
 
 // =============================================
+// LAZY LOADING
+// =============================================
+
+const lazyLoadModules = async () => {
+    // Dynamically import planet viewer and question generator
+    const [viewerModule, genModule] = await Promise.all([
+        import('./planetViewer.js'),
+        import('./questionGenerator.js')
+    ]);
+
+    planetViewer = viewerModule;
+    questionGenerator = genModule;
+
+    // Initialize the 3D viewer canvas
+    const viewerContainer = document.getElementById('quiz-planet-viewer');
+    planetViewer.initPlanetViewer(viewerContainer);
+};
+
+// =============================================
 // TOUR LIFECYCLE
 // =============================================
 
 const startTour = async () => {
-    // Generate daily questions
+    // Loading state
     if (adventureBtn) {
         adventureBtn.querySelector('.nav-adventure-text').textContent = 'CARREGANDO...';
     }
-    
-    questions = await generateDailyQuestions();
+
+    // Lazy load on first use
+    if (!planetViewer || !questionGenerator) {
+        await lazyLoadModules();
+    }
+
+    // Generate daily questions
+    questions = await questionGenerator.generateDailyQuestions();
     if (!questions || questions.length === 0) {
         if (adventureBtn) {
             adventureBtn.querySelector('.nav-adventure-text').textContent = 'MODO AVENTURA';
         }
-        return; // Failed to generate questions
+        return;
     }
-    
+
     totalSteps = questions.length;
     currentStep = 0;
     score = 0;
     hasAnswered = false;
+    progressHistory = [];
+
+    // Restore progress from localStorage
+    const today = new Date().toISOString().split('T')[0];
+    const savedDate = localStorage.getItem('tardis_quiz_date');
+    if (savedDate === today) {
+        try {
+            const savedState = JSON.parse(localStorage.getItem('tardis_quiz_state'));
+            if (savedState) {
+                currentStep = savedState.step || 0;
+                score = savedState.score || 0;
+                hasAnswered = savedState.answered || false;
+                progressHistory = savedState.history || [];
+            }
+        } catch (e) {
+            console.warn('Failed to restore quiz progress');
+        }
+    }
 
     guidedModeActive = true;
 
@@ -176,15 +302,47 @@ const startTour = async () => {
     // Return to solar system first
     if (onTourExitToSolar) onTourExitToSolar();
 
-    // Show overlay with animation
+    // Pause main render loop for performance
+    if (onPauseMainRender) onPauseMainRender();
+
+    // Reset visibility
+    document.getElementById('quiz-planet-badge').style.display = '';
+    document.getElementById('quiz-question-area').style.display = '';
+    document.getElementById('quiz-hint').style.display = '';
+    document.getElementById('quiz-planet-viewer').style.display = '';
+
+    // Show overlay
     overlay.classList.add('active');
     document.body.classList.add('quiz-active');
 
-    setTimeout(() => showStep(0), 500);
+    // Restore progress dots
+    progressHistory.forEach((status, idx) => {
+        markProgressDot(idx, status);
+    });
+
+    // Start planet viewer render loop
+    planetViewer.startViewerLoop();
+
+    // Doctor intro with typewriter
+    const speechText = document.getElementById('quiz-speech-text');
+    typewriterEffect(speechText, DOCTOR_INTRO, 30, () => {
+        setTimeout(() => showStep(currentStep), 500);
+    });
 };
 
 const endTour = () => {
     guidedModeActive = false;
+
+    // Clear typewriter
+    if (typewriterTimer) {
+        clearInterval(typewriterTimer);
+        typewriterTimer = null;
+    }
+
+    // Stop planet viewer
+    if (planetViewer) {
+        planetViewer.stopViewerLoop();
+    }
 
     // Update button
     if (adventureBtn) {
@@ -195,6 +353,9 @@ const endTour = () => {
     // Hide overlay
     overlay.classList.remove('active');
     document.body.classList.remove('quiz-active');
+
+    // Resume main render loop
+    if (onResumeMainRender) onResumeMainRender();
 
     showPlanetSelector();
     hideInfoPanel();
@@ -215,11 +376,14 @@ const showStep = (stepIndex) => {
     // Update progress
     updateProgress(stepIndex);
 
-    // Navigate camera to planet
+    // Load planet into 3D viewer
+    if (planetViewer) {
+        planetViewer.showPlanetInViewer(q.planetNameEN);
+    }
+
+    // Also navigate background camera (subtle parallax behind blur)
     if (planetIndex >= 0) {
         navigateToPlanet(planetIndex);
-        showPlanetInfo(PLANETS_DATA[planetIndex]);
-        highlightPlanetSelector(planetIndex);
     }
 
     // Update UI
@@ -227,16 +391,16 @@ const showStep = (stepIndex) => {
     document.getElementById('quiz-step').textContent = `${stepIndex + 1}/${totalSteps}`;
 
     // Planet badge
+    document.getElementById('quiz-planet-badge').style.display = '';
     document.getElementById('quiz-planet-icon').textContent = PLANET_ICONS[q.planetNameEN] || '🪐';
     document.getElementById('quiz-planet-name').textContent = q.planetName || q.planetNameEN;
 
-    // Doctor speech
-    const doctorText = document.getElementById('quiz-doctor-text');
+    // Doctor speech — planet intro with typewriter
+    const speechText = document.getElementById('quiz-speech-text');
     const details = PLANET_DETAILS_DATA[q.planetNameEN];
-    const intro = details?.curiosities?.[0]?.text || `Vamos explorar ${q.planetName}!`;
-    doctorText.textContent = `Sobre ${q.planetName}: ${intro.substring(0, 120)}... Pronto para o desafio?`;
-    doctorText.classList.add('quiz-text-animate');
-    setTimeout(() => doctorText.classList.remove('quiz-text-animate'), 600);
+    const fact = details?.curiosities?.[0]?.text?.substring(0, 100) || `Um lugar fascinante!`;
+    const introFn = DOCTOR_PLANET_INTRO[Math.floor(Math.random() * DOCTOR_PLANET_INTRO.length)];
+    typewriterEffect(speechText, introFn(q.planetName, fact + '...'), 22);
 
     // Question
     document.getElementById('quiz-question-text').textContent = q.question;
@@ -253,6 +417,10 @@ const showStep = (stepIndex) => {
         optionsContainer.appendChild(btn);
     });
 
+    // Ensure area is visible
+    document.getElementById('quiz-question-area').style.display = '';
+    document.getElementById('quiz-planet-viewer').style.display = '';
+
     // Hide feedback/action
     document.getElementById('quiz-feedback').style.display = 'none';
     document.getElementById('quiz-action-btn').style.display = 'none';
@@ -268,7 +436,7 @@ const checkAnswer = (selectedIndex) => {
 
     const q = questions[currentStep];
     const feedbackEl = document.getElementById('quiz-feedback');
-    const doctorText = document.getElementById('quiz-doctor-text');
+    const speechText = document.getElementById('quiz-speech-text');
     const optionBtns = document.querySelectorAll('.quiz-option');
 
     if (selectedIndex === q.correctIndex) {
@@ -281,17 +449,18 @@ const checkAnswer = (selectedIndex) => {
         feedbackEl.className = 'quiz-feedback quiz-feedback-correct';
         feedbackEl.innerHTML = '✅ <strong>CORRETO!</strong> +10 pontos';
 
-        doctorText.textContent = `Fantástico! Você realmente conhece ${q.planetName}! Allons-y!`;
+        const line = DOCTOR_CORRECT[Math.floor(Math.random() * DOCTOR_CORRECT.length)];
+        typewriterEffect(speechText, line(q.planetName), 22);
 
         optionBtns.forEach((btn, i) => {
             btn.disabled = true;
             if (i === q.correctIndex) btn.classList.add('correct');
         });
 
-        // Update progress dot
         markProgressDot(currentStep, 'correct');
+        progressHistory[currentStep] = 'correct';
+        saveProgress();
 
-        // Show next button
         const actionBtn = document.getElementById('quiz-action-btn');
         actionBtn.textContent = currentStep >= totalSteps - 1
             ? '🏆 VER RESULTADO'
@@ -304,7 +473,8 @@ const checkAnswer = (selectedIndex) => {
         feedbackEl.className = 'quiz-feedback quiz-feedback-wrong';
         feedbackEl.innerHTML = '❌ Tente novamente!';
 
-        doctorText.textContent = `Hmm, não é essa. ${q.hint}`;
+        const line = DOCTOR_WRONG[Math.floor(Math.random() * DOCTOR_WRONG.length)];
+        typewriterEffect(speechText, line(q.hint), 22);
 
         optionBtns.forEach((btn) => {
             if (parseInt(btn.dataset.index) === selectedIndex) {
@@ -312,7 +482,21 @@ const checkAnswer = (selectedIndex) => {
                 btn.disabled = true;
             }
         });
+
+        progressHistory[currentStep] = 'wrong';
+        saveProgress();
     }
+};
+
+const saveProgress = () => {
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem('tardis_quiz_date', today);
+    localStorage.setItem('tardis_quiz_state', JSON.stringify({
+        step: currentStep,
+        score: score,
+        answered: hasAnswered,
+        history: progressHistory
+    }));
 };
 
 const advanceStep = () => {
@@ -320,33 +504,40 @@ const advanceStep = () => {
     if (nextStep >= totalSteps) {
         showCompletion();
     } else {
+        // Save the new step index BEFORE showing it
+        currentStep = nextStep;
+        hasAnswered = false;
+        saveProgress();
         showStep(nextStep);
     }
 };
 
 const showCompletion = () => {
+    localStorage.removeItem('tardis_quiz_date');
+    localStorage.removeItem('tardis_quiz_state');
+
     const maxScore = totalSteps * 10;
     const pct = Math.round((score / maxScore) * 100);
-
-    // Check badges earned
     const earned = BADGE_DEFINITIONS.filter(b => score / 10 >= b.threshold);
 
-    // Update UI
+    // Hide planet viewer in completion
     document.getElementById('quiz-planet-badge').style.display = 'none';
-    document.getElementById('quiz-question-area').style.display = 'none';
+    document.getElementById('quiz-planet-viewer').style.display = 'none';
     document.getElementById('quiz-hint').style.display = 'none';
     document.getElementById('quiz-feedback').style.display = 'none';
 
-    const doctorText = document.getElementById('quiz-doctor-text');
-    doctorText.textContent = pct >= 80
+    // Doctor completion speech
+    const speechText = document.getElementById('quiz-speech-text');
+    const completionSpeech = pct >= 80
         ? `Brilhante! ${pct}% de acertos! Você seria um excelente companheiro da TARDIS. Geronimo! 🌌`
         : pct >= 50
             ? `Nada mal! ${pct}% de acertos. Continue explorando e tente novamente amanhã!`
-            : `Hmm, ${pct}% de acertos. Leia os detalhes dos planetas com mais atenção e volte amanhã!`;
+            : `Hmm, ${pct}% de acertos. Leia os detalhes dos planetas e volte amanhã!`;
+
+    typewriterEffect(speechText, completionSpeech, 18);
 
     document.getElementById('quiz-step').textContent = 'FIM';
 
-    // Show completion content
     const optionsContainer = document.getElementById('quiz-options');
     optionsContainer.innerHTML = '';
     document.getElementById('quiz-question-area').style.display = 'block';
@@ -369,20 +560,17 @@ const showCompletion = () => {
         </div>
     `;
 
-    // Show badges animation
     if (earned.length > 0) {
         badgesEarned += earned.length;
         updateBadgeCount();
         showBadgeAchievement(earned[0]);
     }
 
-    // Close button
     const actionBtn = document.getElementById('quiz-action-btn');
     actionBtn.textContent = '🌟 ENCERRAR AVENTURA';
     actionBtn.style.display = 'block';
     actionBtn.onclick = () => endTour();
 
-    // Mark all progress dots
     updateProgress(totalSteps - 1);
 };
 
@@ -415,8 +603,5 @@ const showBadgeAchievement = (badge) => {
     document.getElementById('badge-achievement-desc').textContent = badge.desc;
 
     el.classList.add('active');
-
-    setTimeout(() => {
-        el.classList.remove('active');
-    }, 4000);
+    setTimeout(() => el.classList.remove('active'), 4000);
 };

@@ -326,12 +326,31 @@ setTouchCallbacks({
 
 // --- ANIMATION LOOP ---
 let prevTime = performance.now();
+let mainRenderPaused = false;
+let pauseFrameCount = 0;
+
+const pauseMainRender = () => {
+    mainRenderPaused = true;
+    pauseFrameCount = 0;
+    console.log('[T.A.R.D.I.S.] Main render throttled for Adventure Mode');
+};
+
+const resumeMainRender = () => {
+    mainRenderPaused = false;
+    console.log('[T.A.R.D.I.S.] Main render resumed');
+};
 
 const animate = () => {
     requestAnimationFrame(animate);
     const now = performance.now();
     const delta = (now - prevTime) / 1000;
     prevTime = now;
+
+    // Throttle to ~5 FPS when quiz is active (just enough for subtle motion)
+    if (mainRenderPaused) {
+        pauseFrameCount++;
+        if (pauseFrameCount % 12 !== 0) return;
+    }
 
     updateFPS(delta);
 
@@ -471,7 +490,9 @@ const init = async () => {
         enterPlanet: (pData) => enterPlanet(pData),
         exitPlanet: () => {
             if (currentState === SceneState.PLANET_SURFACE) exitPlanet();
-        }
+        },
+        pauseRender: pauseMainRender,
+        resumeRender: resumeMainRender
     });
 
     // Init FPS Monitor
