@@ -40,8 +40,8 @@ export const initGuidedTour = (callbacks) => {
     // Adventure button is now in the HTML navbar
     adventureBtn = document.getElementById('guided-tour-btn');
     if (adventureBtn) {
-        adventureBtn.addEventListener('click', () => {
-            guidedModeActive ? endTour() : startTour();
+        adventureBtn.addEventListener('click', async () => {
+            guidedModeActive ? endTour() : await startTour();
         });
     }
 
@@ -144,9 +144,20 @@ const buildProgressPlanets = () => {
 // TOUR LIFECYCLE
 // =============================================
 
-const startTour = () => {
+const startTour = async () => {
     // Generate daily questions
-    questions = generateDailyQuestions();
+    if (adventureBtn) {
+        adventureBtn.querySelector('.nav-adventure-text').textContent = 'CARREGANDO...';
+    }
+    
+    questions = await generateDailyQuestions();
+    if (!questions || questions.length === 0) {
+        if (adventureBtn) {
+            adventureBtn.querySelector('.nav-adventure-text').textContent = 'MODO AVENTURA';
+        }
+        return; // Failed to generate questions
+    }
+    
     totalSteps = questions.length;
     currentStep = 0;
     score = 0;

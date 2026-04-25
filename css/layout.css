@@ -237,7 +237,7 @@
 /* --- BREADCRUMB --- */
 #scene-breadcrumb {
     position: absolute;
-    top: 62px; left: 50%;
+    top: 80px; left: 50%;
     transform: translateX(-50%);
     display: flex; align-items: center; gap: 8px;
     font-family: var(--font-display);
@@ -633,7 +633,7 @@
     #scene-breadcrumb {
         font-size: 8px;
         padding: 6px 14px;
-        top: 54px;
+        top: 68px;
     }
 
     /* Planet Selector */
@@ -668,7 +668,7 @@
     #scene-breadcrumb {
         font-size: 7px;
         padding: 5px 10px;
-        top: 46px;
+        top: 60px;
         gap: 4px;
     }
 
@@ -700,7 +700,7 @@
 @media (max-height: 500px) and (orientation: landscape) {
     .navbar { padding: 6px 10px; }
     .nav-logo { font-size: 12px; }
-    #scene-breadcrumb { top: 40px; font-size: 7px; }
+    #scene-breadcrumb { top: 52px; font-size: 7px; }
     #info-panel {
     #planet-selector { bottom: 6px; }
     .ps-item { min-width: 28px; padding: 3px; }
@@ -720,7 +720,7 @@
 
     .nav-badges, .nav-profile { padding: 6px 10px; font-size: 9px; }
 
-    #scene-breadcrumb { top: 52px; font-size: 9px; padding: 5px 14px; }
+    #scene-breadcrumb { top: 68px; font-size: 9px; padding: 5px 14px; }
     #controls-summary { display: none; }
 
     #fps-monitor { width: 100px; bottom: 12px; right: 12px; padding: 6px; }
@@ -744,7 +744,7 @@
     .nav-badges-count { display: none; }
     .nav-profile { display: none; }
 
-    #scene-breadcrumb { top: 44px; font-size: 8px; }
+    #scene-breadcrumb { top: 60px; font-size: 8px; }
 
     #fps-monitor { width: 90px; bottom: 8px; right: 8px; padding: 5px; border-radius: 8px; }
     .fps-value { font-size: 14px; }
