@@ -39,32 +39,14 @@ body {
     user-select: none;
 }
 
-/* --- VIDEO & CANVAS --- */
-#input_video {
-    position: absolute; top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    object-fit: cover; transform: scaleX(-1);
-    z-index: 0;
-    opacity: 0.15;
-    filter: contrast(1.1) grayscale(0.7) brightness(0.5);
-}
-
+/* --- CANVAS --- */
 #output_canvas {
     position: absolute; top: 0; left: 0;
     z-index: 1; pointer-events: none;
-    /* Mobile: prevent browser's default touch behaviors (scroll, pinch-zoom)
-       so our custom touch controls work without interference */
     touch-action: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-}
-
-#skeleton_canvas {
-    position: absolute; top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    z-index: 2; pointer-events: none;
-    transform: scaleX(-1);
 }
 
 #ui-layer {
@@ -146,17 +128,27 @@ body {
     50% { opacity: 0; }
 }
 
-/* --- HEADER BAR --- */
-.header-bar {
+/* === NAVBAR === */
+.navbar {
     position: absolute; top: 0; left: 0; right: 0;
     display: flex; justify-content: space-between; align-items: center;
-    padding: 16px 24px;
-    background: linear-gradient(180deg, rgba(2,8,22,0.8) 0%, transparent 100%);
+    padding: 12px 24px;
+    background: linear-gradient(180deg, rgba(2,8,22,0.9) 0%, rgba(2,8,22,0.4) 70%, transparent 100%);
+    z-index: 20;
+    pointer-events: auto;
 }
 
-.logo {
+.nav-left, .nav-right {
+    display: flex; align-items: center; gap: 14px;
+    flex: 1;
+}
+
+.nav-right { justify-content: flex-end; }
+.nav-center { flex: 0 0 auto; }
+
+.nav-logo {
     font-family: var(--font-display);
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 900;
     letter-spacing: 3px;
     background: linear-gradient(135deg, var(--tardis-bright), var(--vortex));
@@ -165,31 +157,34 @@ body {
     filter: drop-shadow(0 0 12px var(--tardis-glow));
 }
 
-.logo-version {
+.nav-logo-bolt {
     font-size: 11px;
-    font-weight: 400;
-    letter-spacing: 2px;
     opacity: 0.7;
 }
 
-.mode-indicator {
-    display: flex; align-items: center; gap: 8px;
+.nav-state {
+    display: flex; align-items: center; gap: 6px;
     font-family: var(--font-display);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     background: var(--bg-panel);
-    padding: 8px 16px;
-    border-radius: 20px;
+    padding: 6px 12px;
+    border-radius: 16px;
     border: 1px solid var(--tardis-blue-dim);
     backdrop-filter: blur(10px);
+    letter-spacing: 1px;
 }
 
-.mode-dot {
-    width: 8px; height: 8px;
+.nav-state-dot {
+    width: 7px; height: 7px;
     border-radius: 50%;
     background: var(--tardis-bright);
     box-shadow: 0 0 8px var(--tardis-bright);
     animation: dotPulse 2s ease-in-out infinite;
+}
+
+.nav-state-label {
+    color: var(--tardis-bright);
 }
 
 @keyframes dotPulse {
@@ -197,18 +192,117 @@ body {
     50% { opacity: 0.5; transform: scale(0.8); }
 }
 
+/* --- Adventure Button (Primary CTA) --- */
+.nav-adventure-btn {
+    position: relative;
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 2.5px;
+    font-weight: 900;
+    color: #fff;
+    background: linear-gradient(135deg, var(--vortex), var(--vortex-light), #a855f7);
+    border: 2px solid rgba(168, 85, 247, 0.5);
+    border-radius: 28px;
+    padding: 12px 28px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    text-transform: uppercase;
+    box-shadow: 0 4px 20px rgba(123, 47, 190, 0.35), 0 0 40px rgba(168, 85, 247, 0.1);
+    overflow: hidden;
+}
+
+.nav-adventure-icon {
+    font-size: 18px;
+    animation: adventureIconSpin 4s linear infinite;
+}
+
+@keyframes adventureIconSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.nav-adventure-glow {
+    position: absolute; inset: -2px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, var(--vortex), var(--vortex-light), var(--tardis-bright), var(--vortex));
+    background-size: 300% 300%;
+    animation: adventureGlow 3s ease-in-out infinite;
+    z-index: -1;
+    opacity: 0.6;
+    filter: blur(8px);
+}
+
+@keyframes adventureGlow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.nav-adventure-btn:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 32px rgba(123, 47, 190, 0.5), 0 0 60px rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.8);
+}
+
+.nav-adventure-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.nav-adventure-btn.active {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+    animation: none;
+}
+
+.nav-adventure-btn.active .nav-adventure-glow { display: none; }
+.nav-adventure-btn.active .nav-adventure-icon { animation: none; }
+
+/* --- Badges & Profile Placeholders --- */
+.nav-badges, .nav-profile {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--text-secondary);
+    background: var(--bg-panel);
+    padding: 8px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 1px;
+}
+
+.nav-badges:hover, .nav-profile:hover {
+    border-color: rgba(168, 85, 247, 0.3);
+    background: rgba(168, 85, 247, 0.06);
+}
+
+.nav-badges-icon, .nav-profile-icon {
+    font-size: 16px;
+}
+
+.nav-badges-count {
+    font-weight: 700;
+    color: var(--lamp-gold);
+    min-width: 14px;
+    text-align: center;
+}
+
 /* --- BREADCRUMB --- */
 #scene-breadcrumb {
     position: absolute;
-    top: 60px; left: 50%;
+    top: 62px; left: 50%;
     transform: translateX(-50%);
     display: flex; align-items: center; gap: 8px;
     font-family: var(--font-display);
     font-size: 10px;
     letter-spacing: 1px;
     background: var(--bg-panel);
-    padding: 8px 20px;
-    border-radius: 20px;
+    padding: 6px 18px;
+    border-radius: 16px;
     border: 1px solid rgba(255,255,255,0.06);
     backdrop-filter: blur(8px);
 }
@@ -228,58 +322,7 @@ body {
     font-size: 14px;
 }
 
-/* --- CROSSHAIR --- */
-#crosshair {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px; height: 60px;
-    pointer-events: none;
-    transition: all 0.4s ease;
-}
 
-.crosshair-ring {
-    position: absolute; inset: 0;
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 50%;
-    transition: all 0.4s ease;
-}
-
-.crosshair-dot {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 4px; height: 4px;
-    background: rgba(255,255,255,0.4);
-    border-radius: 50%;
-}
-
-.scanning .crosshair-ring {
-    border-color: var(--tardis-bright);
-    box-shadow: 0 0 20px var(--tardis-glow), inset 0 0 20px var(--tardis-glow);
-    animation: scanPulse 1.5s ease-in-out infinite;
-}
-
-.scanning .crosshair-dot {
-    background: var(--tardis-bright);
-    box-shadow: 0 0 8px var(--tardis-bright);
-}
-
-@keyframes scanPulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.15); opacity: 0.7; }
-}
-
-#gps-data {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, 40px);
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: 9px;
-    color: var(--tardis-bright);
-    opacity: 0.5;
-    letter-spacing: 2px;
-}
 
 /* --- CONTROLS PANEL --- */
 #controls-summary {
@@ -512,8 +555,32 @@ body {
     transform: translateY(0) scale(1);
 }
 
+/* Collapsed state — only header visible */
+#apod-widget.apod-collapsed {
+    width: 280px;
+    border-radius: 12px;
+}
+
+#apod-widget.apod-collapsed .apod-collapsible {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+#apod-widget.apod-collapsed .apod-widget-header {
+    border-bottom: none;
+}
+
+/* Expanded state */
 #apod-widget.expanded {
     width: 420px;
+}
+
+.apod-collapsible {
+    max-height: 600px;
+    overflow: hidden;
+    opacity: 1;
+    transition: max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
 }
 
 /* Header */
@@ -527,6 +594,12 @@ body {
 }
 
 .apod-widget-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.apod-header-right-group {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -731,11 +804,8 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Toggle Button */
+/* Toggle Button — inline in header */
 .apod-toggle {
-    position: absolute;
-    top: 10px;
-    right: 46px;
     width: 26px;
     height: 26px;
     background: rgba(255, 255, 255, 0.06);
@@ -749,7 +819,7 @@ body {
     justify-content: center;
     transition: all 0.3s ease;
     pointer-events: auto;
-    z-index: 10;
+    flex-shrink: 0;
 }
 
 .apod-toggle:hover {
@@ -1262,10 +1332,9 @@ body {
 /* === TABLET (max-width: 768px) === */
 @media (max-width: 768px) {
     /* Header */
-    .header-bar { padding: 10px 14px; }
-    .logo { font-size: 16px; letter-spacing: 2px; }
-    .logo-version { font-size: 9px; }
-    .mode-indicator { font-size: 9px; padding: 6px 12px; }
+    .navbar { padding: 10px 14px; }
+    .nav-logo { font-size: 16px; letter-spacing: 2px; }
+    .nav-state { font-size: 9px; padding: 6px 12px; }
 
     /* Controls - hidden on touch devices */
     #controls-summary { display: none; }
@@ -1312,30 +1381,25 @@ body {
     .pdm-gallery { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .pdm-description { font-size: 13px; }
     .pdm-section-title { font-size: 10px; }
-
-    /* Crosshair smaller */
-    #crosshair { width: 44px; height: 44px; }
-    #gps-data { font-size: 8px; transform: translate(-50%, 30px); }
 }
 
 /* === MOBILE (max-width: 480px) === */
 @media (max-width: 480px) {
     /* Header - compact */
-    .header-bar {
+    .navbar {
         padding: 8px 10px;
         flex-wrap: nowrap;
     }
-    .logo {
+    .nav-logo {
         font-size: 13px;
         letter-spacing: 1.5px;
     }
-    .logo-version { display: none; }
-    .mode-indicator {
+    .nav-state {
         font-size: 8px;
         padding: 5px 10px;
         border-radius: 14px;
     }
-    .mode-dot { width: 6px; height: 6px; }
+    .nav-state-dot { width: 6px; height: 6px; }
 
     /* Breadcrumb */
     #scene-breadcrumb {
@@ -1399,11 +1463,8 @@ body {
     .apod-description { font-size: 10px; max-height: 40px; }
     .apod-toggle { width: 22px; height: 22px; font-size: 8px; }
 
-    /* Crosshair - minimal */
-    #crosshair { width: 36px; height: 36px; }
-    .crosshair-ring { border-width: 1px; }
-    .crosshair-dot { width: 3px; height: 3px; }
-    #gps-data { font-size: 7px; transform: translate(-50%, 24px); }
+    /* APOD collapsed on mobile */
+    #apod-widget.apod-collapsed { width: calc(100% - 20px); }
 
     /* Modal - full screen on mobile */
     .pdm-container {
@@ -1475,8 +1536,8 @@ body {
 
 /* === LANDSCAPE MOBILE === */
 @media (max-height: 500px) and (orientation: landscape) {
-    .header-bar { padding: 6px 10px; }
-    .logo { font-size: 12px; }
+    .navbar { padding: 6px 10px; }
+    .nav-logo { font-size: 12px; }
     #scene-breadcrumb { top: 40px; font-size: 7px; }
     #info-panel {
         width: 240px;
@@ -1501,13 +1562,13 @@ body {
 
 #fps-monitor {
     position: absolute;
-    top: 16px;
+    bottom: 16px;
     right: 20px;
-    width: 150px;
+    width: 120px;
     background: linear-gradient(145deg, rgba(2, 8, 22, 0.92), rgba(8, 16, 40, 0.88));
     border: 1px solid rgba(0, 255, 136, 0.12);
-    border-radius: 12px;
-    padding: 10px 12px;
+    border-radius: 10px;
+    padding: 8px 10px;
     backdrop-filter: blur(14px);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
     pointer-events: auto;
@@ -1515,11 +1576,13 @@ body {
     z-index: 8;
     transition: all 0.3s ease;
     overflow: hidden;
+    opacity: 0.6;
 }
 
 #fps-monitor:hover {
     border-color: rgba(0, 255, 136, 0.25);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 255, 136, 0.08);
+    opacity: 1;
 }
 
 .fps-header {
@@ -1617,322 +1680,286 @@ body {
 }
 
 /* =============================================
-   GUIDED TOUR — DOCTOR WHO MODE
+   FULLSCREEN QUIZ OVERLAY
    ============================================= */
 
-/* Adventure Button in Header */
-.guided-tour-btn {
-    font-family: var(--font-display);
-    font-size: 9px;
-    letter-spacing: 2px;
-    font-weight: 700;
-    color: #fff;
-    background: linear-gradient(135deg, var(--vortex), var(--vortex-light));
-    border: 1px solid rgba(168, 85, 247, 0.4);
-    border-radius: 20px;
-    padding: 8px 18px;
-    cursor: pointer;
-    pointer-events: auto;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    box-shadow: 0 2px 12px rgba(123, 47, 190, 0.25);
-    animation: tourBtnGlow 3s ease-in-out infinite;
-}
-
-.guided-tour-btn:hover {
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 24px rgba(123, 47, 190, 0.4);
-    filter: brightness(1.15);
-}
-
-.guided-tour-btn:active {
-    transform: translateY(0) scale(0.98);
-}
-
-.guided-tour-btn.active {
-    background: linear-gradient(135deg, #ff4444, #cc2222);
-    border-color: rgba(255, 68, 68, 0.4);
-    box-shadow: 0 2px 12px rgba(255, 68, 68, 0.25);
-    animation: none;
-}
-
-@keyframes tourBtnGlow {
-    0%, 100% {
-        box-shadow: 0 2px 12px rgba(123, 47, 190, 0.25);
-        border-color: rgba(168, 85, 247, 0.4);
-    }
-    50% {
-        box-shadow: 0 2px 20px rgba(123, 47, 190, 0.45), 0 0 30px rgba(168, 85, 247, 0.15);
-        border-color: rgba(168, 85, 247, 0.7);
-    }
-}
-
-/* Tour Panel */
-#guided-tour-panel {
-    position: absolute;
-    bottom: 24px;
-    right: 24px;
-    width: 380px;
-    max-height: 70vh;
-    pointer-events: auto;
-    z-index: 15;
+.quiz-overlay {
+    position: fixed; inset: 0;
+    z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(2, 6, 18, 0.85);
+    backdrop-filter: blur(12px);
     opacity: 0;
-    transform: translateY(30px) scale(0.95);
     pointer-events: none;
-    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-#guided-tour-panel.active {
+.quiz-overlay.active {
     opacity: 1;
-    transform: translateY(0) scale(1);
     pointer-events: auto;
 }
 
-.tour-panel-inner {
-    background: linear-gradient(145deg, rgba(2, 8, 22, 0.96), rgba(15, 8, 30, 0.94));
-    border: 1px solid rgba(168, 85, 247, 0.2);
-    border-radius: 16px;
-    overflow: hidden;
-    backdrop-filter: blur(20px);
-    box-shadow:
-        0 12px 48px rgba(0, 0, 0, 0.6),
-        0 0 1px rgba(168, 85, 247, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    animation: tourPanelBorder 4s ease-in-out infinite;
+body.quiz-active #controls-summary,
+body.quiz-active #apod-widget,
+body.quiz-active #info-panel,
+body.quiz-active #planet-selector {
+    opacity: 0.15;
+    pointer-events: none;
 }
 
-@keyframes tourPanelBorder {
-    0%, 100% { border-color: rgba(168, 85, 247, 0.2); }
-    50% { border-color: rgba(168, 85, 247, 0.45); }
+.quiz-container {
+    width: 90%;
+    max-width: 680px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 0 20px 30px;
+    overflow-y: auto;
+    animation: quizSlideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Tour Header */
-.tour-header {
+.quiz-overlay.active .quiz-container {
+    animation: quizSlideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes quizSlideIn {
+    from { opacity: 0; transform: translateY(40px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Progress Bar */
+.quiz-progress {
+    position: relative;
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    overflow: visible;
+}
+
+.quiz-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--vortex), var(--vortex-light), var(--tardis-bright));
+    border-radius: 6px;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+}
+
+.quiz-progress-planets {
+    position: absolute; top: 12px; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+    padding: 0 4px;
+}
+
+.quiz-pp {
+    font-size: 14px;
+    opacity: 0.3;
+    transition: all 0.3s ease;
+    filter: grayscale(1);
+}
+
+.quiz-pp.correct {
+    opacity: 1;
+    filter: grayscale(0);
+    transform: scale(1.2);
+}
+
+/* Header */
+.quiz-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 16px;
-    border-bottom: 1px solid rgba(168, 85, 247, 0.12);
-    background: linear-gradient(90deg, rgba(123, 47, 190, 0.08), transparent);
+    margin-top: 24px;
 }
 
-.tour-header-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.quiz-header-left {
+    display: flex; gap: 20px; align-items: center;
 }
 
-.doctor-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--vortex), var(--vortex-light));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    box-shadow: 0 0 16px rgba(123, 47, 190, 0.4);
-    animation: doctorPulse 3s ease-in-out infinite;
-    flex-shrink: 0;
+.quiz-score-display, .quiz-step-display {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px;
 }
 
-@keyframes doctorPulse {
-    0%, 100% { box-shadow: 0 0 16px rgba(123, 47, 190, 0.4); }
-    50% { box-shadow: 0 0 24px rgba(123, 47, 190, 0.6), 0 0 40px rgba(168, 85, 247, 0.2); }
-}
-
-.tour-header-title {
+.quiz-score-label, .quiz-step-label {
     font-family: var(--font-display);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 7px;
     letter-spacing: 2px;
-    color: var(--vortex-light);
-}
-
-.tour-header-sub {
-    font-size: 9px;
     color: var(--text-secondary);
-    opacity: 0.6;
-    letter-spacing: 1px;
+    opacity: 0.5;
 }
 
-.tour-header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.tour-progress-text {
+.quiz-score-value {
     font-family: var(--font-display);
-    font-size: 10px;
-    color: var(--vortex-light);
-    letter-spacing: 1px;
-    background: rgba(168, 85, 247, 0.1);
-    padding: 4px 10px;
-    border-radius: 10px;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--lamp-gold);
+    text-shadow: 0 0 20px rgba(255, 200, 0, 0.3);
 }
 
-.tour-close {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.quiz-step-value {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--vortex-light);
+    letter-spacing: 1px;
+}
+
+.quiz-close {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
     color: var(--text-secondary);
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    font-size: 12px;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    font-size: 16px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     transition: all 0.25s ease;
 }
 
-.tour-close:hover {
+.quiz-close:hover {
     background: rgba(255, 80, 80, 0.15);
     border-color: rgba(255, 80, 80, 0.3);
     color: #ff6666;
 }
 
-/* Progress Bar */
-.tour-progress-bar {
-    height: 3px;
-    background: rgba(255, 255, 255, 0.05);
+/* Doctor Speech Container */
+.quiz-doctor-container {
+    display: flex; align-items: flex-start; gap: 14px;
 }
 
-.tour-progress-fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--vortex), var(--vortex-light), var(--tardis-bright));
-    border-radius: 0 3px 3px 0;
-    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-    box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+.quiz-doctor-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--vortex), var(--vortex-light));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 0 20px rgba(123, 47, 190, 0.4);
+    flex-shrink: 0;
+    animation: doctorPulse 3s ease-in-out infinite;
 }
 
-/* Tour Body */
-.tour-body {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    max-height: 50vh;
-    overflow-y: auto;
+@keyframes doctorPulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(123, 47, 190, 0.4); }
+    50% { box-shadow: 0 0 28px rgba(123, 47, 190, 0.6), 0 0 50px rgba(168, 85, 247, 0.15); }
 }
 
-.tour-body::-webkit-scrollbar { width: 3px; }
-.tour-body::-webkit-scrollbar-thumb { background: var(--vortex); border-radius: 3px; }
+.quiz-doctor-speech {
+    position: relative;
+    flex: 1;
+    background: rgba(168, 85, 247, 0.06);
+    border: 1px solid rgba(168, 85, 247, 0.15);
+    border-radius: 0 16px 16px 16px;
+    padding: 14px 18px;
+}
 
-/* Dialogue */
-.tour-dialogue {
-    font-size: 13px;
+.quiz-doctor-tail {
+    position: absolute;
+    left: -8px; top: 14px;
+    width: 0; height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid rgba(168, 85, 247, 0.15);
+}
+
+.quiz-doctor-text {
+    font-size: 14px;
     color: var(--text-secondary);
-    line-height: 1.7;
+    line-height: 1.6;
     font-weight: 300;
-    padding: 12px 14px;
-    background: rgba(168, 85, 247, 0.04);
-    border-left: 3px solid var(--vortex);
-    border-radius: 0 8px 8px 0;
 }
 
-.tour-dialogue-animate {
-    animation: dialogueFadeIn 0.5s ease both;
+.quiz-text-animate {
+    animation: quizTextFade 0.5s ease both;
 }
 
-@keyframes dialogueFadeIn {
-    from { opacity: 0; transform: translateX(-8px); }
+@keyframes quizTextFade {
+    from { opacity: 0; transform: translateX(-6px); }
     to { opacity: 1; transform: translateX(0); }
 }
 
 /* Planet Badge */
-.tour-planet-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
+.quiz-planet-badge {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    align-self: flex-start;
 }
 
-.tour-planet-icon {
-    font-size: 20px;
-}
+.quiz-planet-icon { font-size: 24px; }
 
-.tour-planet-name {
+.quiz-planet-name {
     font-family: var(--font-display);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 2px;
     color: var(--text-primary);
 }
 
 /* Question Area */
-.tour-question-area {
-    animation: questionFadeIn 0.6s ease both;
+.quiz-question-area {
+    animation: quizQuestionIn 0.5s ease both;
 }
 
-@keyframes questionFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+@keyframes quizQuestionIn {
+    from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-.tour-question {
+.quiz-question-text {
     font-family: var(--font-display);
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 600;
-    letter-spacing: 0.5px;
     color: var(--text-primary);
-    margin-bottom: 12px;
-    line-height: 1.5;
-    text-shadow: 0 0 12px rgba(168, 85, 247, 0.1);
+    margin-bottom: 16px;
+    line-height: 1.6;
+    letter-spacing: 0.3px;
 }
 
-.tour-options {
+.quiz-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 12px;
 }
 
-.tour-option {
+.quiz-option {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: 13px;
     color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 10px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 14px 16px;
     cursor: pointer;
     transition: all 0.25s ease;
     text-align: center;
     line-height: 1.4;
 }
 
-.tour-option:hover:not(:disabled) {
-    background: rgba(168, 85, 247, 0.08);
-    border-color: rgba(168, 85, 247, 0.3);
+.quiz-option:hover:not(:disabled) {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: rgba(168, 85, 247, 0.35);
     color: var(--text-primary);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(123, 47, 190, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(123, 47, 190, 0.2);
 }
 
-.tour-option:active:not(:disabled) {
-    transform: translateY(0);
-}
+.quiz-option:disabled { cursor: not-allowed; opacity: 0.5; }
 
-.tour-option:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-}
-
-.tour-option.correct {
-    background: rgba(0, 255, 136, 0.1) !important;
-    border-color: rgba(0, 255, 136, 0.4) !important;
+.quiz-option.correct {
+    background: rgba(0, 255, 136, 0.12) !important;
+    border-color: rgba(0, 255, 136, 0.45) !important;
     color: #00ff88 !important;
     opacity: 1 !important;
-    box-shadow: 0 0 16px rgba(0, 255, 136, 0.15);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.15);
     animation: correctPop 0.4s ease;
 }
 
-.tour-option.wrong {
+.quiz-option.wrong {
     background: rgba(255, 60, 60, 0.1) !important;
     border-color: rgba(255, 60, 60, 0.4) !important;
     color: #ff6666 !important;
@@ -1942,25 +1969,39 @@ body {
 
 @keyframes correctPop {
     0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+    50% { transform: scale(1.06); }
     100% { transform: scale(1); }
 }
 
 @keyframes wrongShake {
     0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-4px); }
-    40% { transform: translateX(4px); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
     60% { transform: translateX(-3px); }
     80% { transform: translateX(3px); }
 }
 
+/* Hint */
+.quiz-hint {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: rgba(255, 200, 0, 0.04);
+    border: 1px solid rgba(255, 200, 0, 0.1);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--lamp-gold);
+    opacity: 0.7;
+}
+
+.quiz-hint-icon { font-size: 16px; }
+
 /* Feedback */
-.tour-feedback {
+.quiz-feedback {
     font-family: var(--font-display);
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: 1px;
-    padding: 8px 14px;
-    border-radius: 8px;
+    padding: 12px 18px;
+    border-radius: 10px;
     text-align: center;
     animation: feedbackFadeIn 0.3s ease;
 }
@@ -1970,127 +2011,259 @@ body {
     to { opacity: 1; transform: scale(1); }
 }
 
-.tour-feedback-correct {
+.quiz-feedback-correct {
     background: rgba(0, 255, 136, 0.08);
     border: 1px solid rgba(0, 255, 136, 0.2);
     color: #00ff88;
 }
 
-.tour-feedback-wrong {
+.quiz-feedback-wrong {
     background: rgba(255, 60, 60, 0.08);
     border: 1px solid rgba(255, 60, 60, 0.2);
     color: #ff6666;
 }
 
-/* Next Button */
-.tour-next-btn {
+/* Action Button */
+.quiz-action-btn {
     width: 100%;
-    padding: 12px 18px;
+    padding: 16px 24px;
     font-family: var(--font-display);
-    font-size: 10px;
-    letter-spacing: 2px;
+    font-size: 12px;
+    letter-spacing: 2.5px;
     font-weight: 700;
     color: #fff;
     background: linear-gradient(135deg, var(--vortex), var(--vortex-light));
     border: none;
-    border-radius: 10px;
+    border-radius: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
-    box-shadow: 0 4px 16px rgba(123, 47, 190, 0.3);
-    animation: feedbackFadeIn 0.4s ease;
+    box-shadow: 0 6px 24px rgba(123, 47, 190, 0.35);
 }
 
-.tour-next-btn:hover {
+.quiz-action-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(123, 47, 190, 0.45);
+    box-shadow: 0 8px 32px rgba(123, 47, 190, 0.5);
     filter: brightness(1.1);
 }
 
-.tour-next-btn:active {
-    transform: translateY(0);
+/* Completion Screen */
+.quiz-completion {
+    text-align: center;
+    padding: 20px 0;
 }
 
-/* Tour Actions */
-.tour-actions {
-    display: flex;
-    gap: 8px;
+.quiz-completion-trophy {
+    font-size: 64px;
+    animation: trophyBounce 1s ease both;
 }
 
-/* --- TOUR RESPONSIVE --- */
+@keyframes trophyBounce {
+    0% { transform: scale(0) rotate(-20deg); }
+    50% { transform: scale(1.3) rotate(5deg); }
+    100% { transform: scale(1) rotate(0); }
+}
+
+.quiz-completion-title {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--lamp-gold), #ff8800, var(--lamp-gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 16px 0 8px;
+}
+
+.quiz-completion-score {
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+}
+
+.quiz-completion-badges {
+    display: flex; justify-content: center; gap: 16px;
+    margin: 24px 0;
+    flex-wrap: wrap;
+}
+
+.quiz-completion-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    background: rgba(255, 200, 0, 0.08);
+    border: 1px solid rgba(255, 200, 0, 0.2);
+    border-radius: 12px;
+    animation: badgeAppear 0.5s ease both;
+}
+
+.qcb-icon { font-size: 24px; }
+.qcb-name {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--lamp-gold);
+}
+
+@keyframes badgeAppear {
+    from { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+    to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+.quiz-completion-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    margin-top: 16px;
+    letter-spacing: 0.5px;
+}
+
+/* =============================================
+   BADGE ACHIEVEMENT OVERLAY
+   ============================================= */
+
+.badge-achievement {
+    position: fixed;
+    top: 80px; right: 24px;
+    width: 320px;
+    z-index: 100;
+    opacity: 0;
+    transform: translateX(100%);
+    pointer-events: none;
+    transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.badge-achievement.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+.badge-achievement-content {
+    background: linear-gradient(145deg, rgba(2, 8, 22, 0.96), rgba(40, 20, 60, 0.94));
+    border: 2px solid rgba(255, 200, 0, 0.3);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 200, 0, 0.1);
+    animation: badgeGlow 2s ease-in-out infinite;
+}
+
+@keyframes badgeGlow {
+    0%, 100% { border-color: rgba(255, 200, 0, 0.3); box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6); }
+    50% { border-color: rgba(255, 200, 0, 0.6); box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 200, 0, 0.15); }
+}
+
+.badge-achievement-icon {
+    font-size: 48px;
+    animation: trophyBounce 0.8s ease both;
+}
+
+.badge-achievement-title {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--lamp-gold);
+    margin: 8px 0 4px;
+    opacity: 0.7;
+}
+
+.badge-achievement-name {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+}
+
+.badge-achievement-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    opacity: 0.6;
+}
+
+/* =============================================
+   RESPONSIVE — UPDATED
+   ============================================= */
+
 @media (max-width: 768px) {
-    .guided-tour-btn {
-        font-size: 7px;
-        padding: 6px 12px;
-        letter-spacing: 1px;
-    }
+    .navbar { padding: 8px 14px; }
+    .nav-logo { font-size: 14px; letter-spacing: 2px; }
+    .nav-state { font-size: 8px; padding: 5px 10px; }
 
-    #guided-tour-panel {
-        width: 320px;
-        right: 10px;
-        bottom: 16px;
+    .nav-adventure-btn {
+        font-size: 9px;
+        padding: 8px 16px;
+        letter-spacing: 1.5px;
     }
+    .nav-adventure-icon { font-size: 14px; }
 
-    .tour-dialogue { font-size: 12px; }
-    .tour-options { grid-template-columns: 1fr; }
-    .doctor-avatar { width: 34px; height: 34px; font-size: 16px; }
+    .nav-badges, .nav-profile { padding: 6px 10px; font-size: 9px; }
 
-    #fps-monitor {
-        width: 120px;
-        top: 12px;
-        right: 12px;
-        padding: 8px;
-    }
-    .fps-value { font-size: 18px; }
+    #scene-breadcrumb { top: 52px; font-size: 9px; padding: 5px 14px; }
+    #controls-summary { display: none; }
+
+    .quiz-container { max-width: 100%; padding: 0 12px 20px; }
+    .quiz-options { grid-template-columns: 1fr; }
+    .quiz-question-text { font-size: 14px; }
+    .quiz-doctor-avatar { width: 40px; height: 40px; font-size: 20px; }
+    .quiz-doctor-text { font-size: 12px; }
+
+    #fps-monitor { width: 100px; bottom: 12px; right: 12px; padding: 6px; }
+    .fps-value { font-size: 16px; }
 }
 
 @media (max-width: 480px) {
-    .guided-tour-btn {
-        font-size: 6px;
-        padding: 5px 8px;
-        letter-spacing: 0.5px;
-        border-radius: 12px;
-    }
+    .navbar { padding: 6px 10px; }
+    .nav-logo { font-size: 12px; }
+    .nav-state { display: none; }
 
-    #guided-tour-panel {
-        width: calc(100% - 20px);
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
-        max-height: 55vh;
+    .nav-adventure-btn {
+        font-size: 7px;
+        padding: 6px 12px;
+        letter-spacing: 1px;
+        border-radius: 16px;
     }
+    .nav-adventure-text { display: none; }
+    .nav-adventure-icon { font-size: 18px; }
 
-    .tour-header { padding: 10px 12px; }
-    .doctor-avatar { width: 30px; height: 30px; font-size: 14px; }
-    .tour-header-title { font-size: 9px; }
-    .tour-body { padding: 12px; gap: 10px; }
-    .tour-dialogue { font-size: 11px; padding: 10px 12px; }
-    .tour-question { font-size: 10px; }
-    .tour-option { font-size: 10px; padding: 8px 10px; }
-    .tour-options { grid-template-columns: 1fr; }
+    .nav-badges-count { display: none; }
+    .nav-profile { display: none; }
 
-    #fps-monitor {
-        width: 100px;
-        top: 8px;
-        right: 8px;
-        padding: 6px;
-        border-radius: 8px;
-    }
-    .fps-value { font-size: 16px; }
+    #scene-breadcrumb { top: 44px; font-size: 8px; }
+
+    .quiz-score-value { font-size: 22px; }
+    .quiz-step-value { font-size: 13px; }
+    .quiz-planet-name { font-size: 12px; }
+    .quiz-option { font-size: 12px; padding: 12px; }
+
+    #fps-monitor { width: 90px; bottom: 8px; right: 8px; padding: 5px; border-radius: 8px; }
+    .fps-value { font-size: 14px; }
     .fps-label { font-size: 6px; }
-    .fps-chart-container { height: 24px; }
+    .fps-chart-container { height: 20px; }
+
+    .badge-achievement { width: 260px; right: 10px; top: 60px; }
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
-    #guided-tour-panel {
-        width: 300px;
-        max-height: 80vh;
-        bottom: 8px;
-        right: 8px;
-    }
-
-    #fps-monitor {
-        top: 8px;
-        right: 8px;
-    }
+    .quiz-container { max-height: 85vh; gap: 12px; }
+    .quiz-doctor-container { display: none; }
+    #fps-monitor { bottom: 8px; right: 8px; }
 }
+
+/* === NOTEBOOK (max-height: 800px) === */
+@media (max-height: 800px) {
+    .quiz-container { gap: 14px; }
+    .quiz-doctor-text { font-size: 12px; }
+    .quiz-question-text { font-size: 14px; }
+    .quiz-option { padding: 10px 14px; font-size: 12px; }
+
+    #info-panel { max-height: 55vh; }
+    .info-desc { max-height: 100px; }
+    #apod-widget { bottom: 12px; }
+    #apod-widget.apod-collapsed { width: 260px; }
+}
+

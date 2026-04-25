@@ -1,224 +1,205 @@
 // ============================================
-// T.A.R.D.I.S. — GUIDED TOUR (Doctor Who Mode)
+// T.A.R.D.I.S. — GUIDED TOUR (Fullscreen Quiz)
+// Gamified fullscreen quiz with dynamic questions,
+// badge achievements, and Doctor character container
 // ============================================
 import { PLANETS_DATA } from '../data/planetsData.js';
-import { GUIDED_TOUR_DATA } from '../data/guidedTourData.js';
 import { PLANET_DETAILS_DATA } from '../data/planetDetails.js';
 import { navigateToPlanet } from '../camera/cameraController.js';
 import { showPlanetInfo, hideInfoPanel } from './infoPanel.js';
 import { highlightPlanetSelector, hidePlanetSelector, showPlanetSelector } from './planetSelector.js';
+import { generateDailyQuestions, PLANET_ICONS } from './questionGenerator.js';
 
-// --- Tour state ---
-var guidedModeActive = false;
-var currentTourStep = 0;
-var tourPanel = null;
-var tourBtn = null;
-var hasAnsweredCorrectly = false;
+// --- STATE ---
+let guidedModeActive = false;
+let currentStep = 0;
+let totalSteps = 0;
+let score = 0;
+let questions = [];
+let hasAnswered = false;
+let badgesEarned = 0;
+let overlay = null;
+let adventureBtn = null;
 
-// Callbacks set by main.js for planet entry
-var onTourEnterPlanet = null;
-var onTourExitToSolar = null;
+// Callbacks
+let onTourEnterPlanet = null;
+let onTourExitToSolar = null;
 
-/**
- * Initialize the guided tour UI: button + panel.
- * @param {object} callbacks - { enterPlanet: fn(pData), exitPlanet: fn() }
- */
-export function initGuidedTour(callbacks) {
-    if (callbacks) {
-        onTourEnterPlanet = callbacks.enterPlanet || null;
-        onTourExitToSolar = callbacks.exitPlanet || null;
-    }
+// --- BADGES ---
+const BADGE_DEFINITIONS = [
+    { id: 'explorer', name: 'Explorador Solar', desc: 'Completou o quiz do Sistema Solar', icon: '🌟', threshold: 5 },
+    { id: 'master', name: 'Mestre Cósmico', desc: 'Acertou todas as perguntas', icon: '👑', threshold: 9 },
+    { id: 'scholar', name: 'Estudioso Estelar', desc: 'Acertou mais de 7 perguntas', icon: '📚', threshold: 7 }
+];
 
-    // Create the adventure button in the header
-    createTourButton();
+// --- PUBLIC API ---
+export const initGuidedTour = (callbacks) => {
+    onTourEnterPlanet = callbacks?.enterPlanet || null;
+    onTourExitToSolar = callbacks?.exitPlanet || null;
 
-    // Create the Doctor panel (hidden by default)
-    createTourPanel();
-}
-
-/**
- * Returns true if the guided tour is currently active.
- */
-export function isGuidedModeActive() {
-    return guidedModeActive;
-}
-
-// =============================================
-// DOM CREATION
-// =============================================
-
-/**
- * Create the "MODO AVENTURA" button and append to the header bar.
- */
-function createTourButton() {
-    tourBtn = document.createElement('button');
-    tourBtn.id = 'guided-tour-btn';
-    tourBtn.className = 'guided-tour-btn';
-    tourBtn.innerHTML = '🌀 MODO AVENTURA';
-    tourBtn.title = 'Iniciar viagem guiada pelo Sistema Solar';
-
-    tourBtn.addEventListener('click', function () {
-        if (guidedModeActive) {
-            endGuidedTour();
-        } else {
-            startGuidedTour();
-        }
-    });
-
-    // Insert into header bar
-    var headerBar = document.querySelector('.header-bar');
-    if (headerBar) {
-        headerBar.appendChild(tourBtn);
-    }
-}
-
-/**
- * Create the Doctor Who guide panel.
- */
-function createTourPanel() {
-    tourPanel = document.createElement('div');
-    tourPanel.id = 'guided-tour-panel';
-
-    tourPanel.innerHTML = buildPanelHTML();
-
-    document.getElementById('ui-layer').appendChild(tourPanel);
-
-    // Wire up close button
-    var closeBtn = document.getElementById('tour-close-btn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function () {
-            endGuidedTour();
+    // Adventure button is now in the HTML navbar
+    adventureBtn = document.getElementById('guided-tour-btn');
+    if (adventureBtn) {
+        adventureBtn.addEventListener('click', () => {
+            guidedModeActive ? endTour() : startTour();
         });
     }
 
-    // Wire up next button
-    var nextBtn = document.getElementById('tour-next-btn');
-    if (nextBtn) {
-        nextBtn.addEventListener('click', function () {
-            if (hasAnsweredCorrectly) {
-                advanceToNextPlanet();
-            }
-        });
-    }
-}
+    createOverlay();
+};
 
-/**
- * Build the panel's inner HTML.
- */
-function buildPanelHTML() {
-    return '' +
-        '<div class="tour-panel-inner">' +
-            '<div class="tour-header">' +
-                '<div class="tour-header-left">' +
-                    '<div class="doctor-avatar">🧥</div>' +
-                    '<div class="tour-header-info">' +
-                        '<div class="tour-header-title">O DOUTOR</div>' +
-                        '<div class="tour-header-sub">Guia Temporal</div>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="tour-header-right">' +
-                    '<div class="tour-progress-text" id="tour-progress-text">0/9</div>' +
-                    '<button class="tour-close" id="tour-close-btn" title="Encerrar Aventura">✕</button>' +
-                '</div>' +
-            '</div>' +
+export const isGuidedModeActive = () => guidedModeActive;
 
-            '<div class="tour-progress-bar">' +
-                '<div class="tour-progress-fill" id="tour-progress-fill"></div>' +
-            '</div>' +
+// =============================================
+// FULLSCREEN OVERLAY — DOM CREATION
+// =============================================
 
-            '<div class="tour-body">' +
-                '<div class="tour-dialogue" id="tour-dialogue">' +
-                    'Preparado para uma aventura pelo Sistema Solar?' +
-                '</div>' +
+const createOverlay = () => {
+    overlay = document.createElement('div');
+    overlay.id = 'quiz-overlay';
+    overlay.className = 'quiz-overlay';
+    overlay.innerHTML = `
+        <div class="quiz-container">
+            <!-- Progress Bar -->
+            <div class="quiz-progress">
+                <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+                <div class="quiz-progress-planets" id="quiz-progress-planets"></div>
+            </div>
 
-                '<div class="tour-planet-badge" id="tour-planet-badge" style="display:none;">' +
-                    '<span class="tour-planet-icon" id="tour-planet-icon">🪐</span>' +
-                    '<span class="tour-planet-name" id="tour-planet-name">--</span>' +
-                '</div>' +
+            <!-- Header -->
+            <div class="quiz-header">
+                <div class="quiz-header-left">
+                    <div class="quiz-score-display">
+                        <span class="quiz-score-label">PONTUAÇÃO</span>
+                        <span class="quiz-score-value" id="quiz-score">0</span>
+                    </div>
+                    <div class="quiz-step-display">
+                        <span class="quiz-step-label">PERGUNTA</span>
+                        <span class="quiz-step-value" id="quiz-step">1/9</span>
+                    </div>
+                </div>
+                <button class="quiz-close" id="quiz-close" title="Encerrar Quiz">✕</button>
+            </div>
 
-                '<div class="tour-question-area" id="tour-question-area" style="display:none;">' +
-                    '<div class="tour-question" id="tour-question">--</div>' +
-                    '<div class="tour-options" id="tour-options"></div>' +
-                '</div>' +
+            <!-- Doctor Speech Container (prepared for future character) -->
+            <div class="quiz-doctor-container" id="quiz-doctor-container">
+                <div class="quiz-doctor-avatar">🧥</div>
+                <div class="quiz-doctor-speech" id="quiz-doctor-speech">
+                    <div class="quiz-doctor-text" id="quiz-doctor-text">
+                        Preparado para uma aventura pelo Sistema Solar?
+                    </div>
+                    <div class="quiz-doctor-tail"></div>
+                </div>
+            </div>
 
-                '<div class="tour-feedback" id="tour-feedback" style="display:none;"></div>' +
+            <!-- Planet Badge -->
+            <div class="quiz-planet-badge" id="quiz-planet-badge">
+                <span class="quiz-planet-icon" id="quiz-planet-icon">🪐</span>
+                <span class="quiz-planet-name" id="quiz-planet-name">--</span>
+            </div>
 
-                '<div class="tour-actions">' +
-                    '<button class="tour-next-btn" id="tour-next-btn" style="display:none;">PRÓXIMO PLANETA →</button>' +
-                '</div>' +
-            '</div>' +
-        '</div>';
-}
+            <!-- Question Area -->
+            <div class="quiz-question-area" id="quiz-question-area">
+                <div class="quiz-question-text" id="quiz-question-text">--</div>
+                <div class="quiz-options" id="quiz-options"></div>
+            </div>
+
+            <!-- Hint -->
+            <div class="quiz-hint" id="quiz-hint" style="display:none;">
+                <span class="quiz-hint-icon">💡</span>
+                <span class="quiz-hint-text" id="quiz-hint-text"></span>
+            </div>
+
+            <!-- Feedback -->
+            <div class="quiz-feedback" id="quiz-feedback" style="display:none;"></div>
+
+            <!-- Action Button -->
+            <button class="quiz-action-btn" id="quiz-action-btn" style="display:none;">
+                PRÓXIMO PLANETA →
+            </button>
+        </div>
+    `;
+
+    document.getElementById('ui-layer').appendChild(overlay);
+
+    // Wire events
+    document.getElementById('quiz-close').addEventListener('click', endTour);
+    document.getElementById('quiz-action-btn').addEventListener('click', advanceStep);
+
+    // Build progress planet dots
+    buildProgressPlanets();
+};
+
+const buildProgressPlanets = () => {
+    const container = document.getElementById('quiz-progress-planets');
+    const planets = Object.keys(PLANET_DETAILS_DATA);
+    container.innerHTML = planets.map((name, i) => `
+        <div class="quiz-pp" data-index="${i}" title="${name}">
+            <span>${PLANET_ICONS[name] || '🪐'}</span>
+        </div>
+    `).join('');
+};
 
 // =============================================
 // TOUR LIFECYCLE
 // =============================================
 
-/**
- * Start the guided tour from planet 0 (Sun).
- */
-function startGuidedTour() {
+const startTour = () => {
+    // Generate daily questions
+    questions = generateDailyQuestions();
+    totalSteps = questions.length;
+    currentStep = 0;
+    score = 0;
+    hasAnswered = false;
+
     guidedModeActive = true;
-    currentTourStep = 0;
-    hasAnsweredCorrectly = false;
 
     // Update button
-    tourBtn.innerHTML = '⏹ PARAR AVENTURA';
-    tourBtn.classList.add('active');
-
-    // Hide planet selector
-    hidePlanetSelector();
-
-    // Show tour panel
-    tourPanel.classList.add('active');
-
-    // If we're on a planet surface, exit first
-    if (onTourExitToSolar) {
-        onTourExitToSolar();
+    if (adventureBtn) {
+        adventureBtn.querySelector('.nav-adventure-text').textContent = 'PARAR QUIZ';
+        adventureBtn.classList.add('active');
     }
 
-    // Start the first step after a brief delay
-    setTimeout(function () {
-        showTourStep(0);
-    }, 600);
-}
+    hidePlanetSelector();
 
-/**
- * End the guided tour and restore normal navigation.
- */
-function endGuidedTour() {
+    // Return to solar system first
+    if (onTourExitToSolar) onTourExitToSolar();
+
+    // Show overlay with animation
+    overlay.classList.add('active');
+    document.body.classList.add('quiz-active');
+
+    setTimeout(() => showStep(0), 500);
+};
+
+const endTour = () => {
     guidedModeActive = false;
-    currentTourStep = 0;
-    hasAnsweredCorrectly = false;
 
     // Update button
-    tourBtn.innerHTML = '🌀 MODO AVENTURA';
-    tourBtn.classList.remove('active');
+    if (adventureBtn) {
+        adventureBtn.querySelector('.nav-adventure-text').textContent = 'MODO AVENTURA';
+        adventureBtn.classList.remove('active');
+    }
 
-    // Hide tour panel
-    tourPanel.classList.remove('active');
+    // Hide overlay
+    overlay.classList.remove('active');
+    document.body.classList.remove('quiz-active');
 
-    // Show planet selector again
     showPlanetSelector();
-
-    // Hide info panel
     hideInfoPanel();
-}
+};
 
-/**
- * Show a specific tour step (planet + question).
- */
-function showTourStep(stepIndex) {
-    if (stepIndex >= GUIDED_TOUR_DATA.length) {
-        showTourComplete();
+const showStep = (stepIndex) => {
+    if (stepIndex >= totalSteps) {
+        showCompletion();
         return;
     }
 
-    currentTourStep = stepIndex;
-    hasAnsweredCorrectly = false;
+    currentStep = stepIndex;
+    hasAnswered = false;
 
-    var tourData = GUIDED_TOUR_DATA[stepIndex];
-    var planetIndex = findPlanetIndexByName(tourData.planetNameEN);
+    const q = questions[stepIndex];
+    const planetIndex = PLANETS_DATA.findIndex(p => p.nameEN === q.planetNameEN);
 
     // Update progress
     updateProgress(stepIndex);
@@ -226,203 +207,205 @@ function showTourStep(stepIndex) {
     // Navigate camera to planet
     if (planetIndex >= 0) {
         navigateToPlanet(planetIndex);
-
-        // Show planet info
-        var pData = PLANETS_DATA[planetIndex];
-        showPlanetInfo(pData);
+        showPlanetInfo(PLANETS_DATA[planetIndex]);
         highlightPlanetSelector(planetIndex);
     }
 
-    // Planet icons mapping
-    var planetIcons = {
-        'Sun': '☀️', 'Mercury': '⚫', 'Venus': '🟡', 'Earth': '🌍',
-        'Mars': '🔴', 'Jupiter': '🟠', 'Saturn': '🪐', 'Uranus': '🔵', 'Neptune': '🔵'
-    };
+    // Update UI
+    document.getElementById('quiz-score').textContent = score;
+    document.getElementById('quiz-step').textContent = `${stepIndex + 1}/${totalSteps}`;
 
-    // Show planet badge
-    var badgeEl = document.getElementById('tour-planet-badge');
-    badgeEl.style.display = 'flex';
-    document.getElementById('tour-planet-icon').textContent = planetIcons[tourData.planetNameEN] || '🪐';
-    document.getElementById('tour-planet-name').textContent = tourData.planetNameEN;
+    // Planet badge
+    document.getElementById('quiz-planet-icon').textContent = PLANET_ICONS[q.planetNameEN] || '🪐';
+    document.getElementById('quiz-planet-name').textContent = q.planetName || q.planetNameEN;
 
-    // Show Doctor's intro
-    var dialogueEl = document.getElementById('tour-dialogue');
-    dialogueEl.textContent = tourData.doctorIntro;
-    dialogueEl.className = 'tour-dialogue tour-dialogue-animate';
+    // Doctor speech
+    const doctorText = document.getElementById('quiz-doctor-text');
+    const details = PLANET_DETAILS_DATA[q.planetNameEN];
+    const intro = details?.curiosities?.[0]?.text || `Vamos explorar ${q.planetName}!`;
+    doctorText.textContent = `Sobre ${q.planetName}: ${intro.substring(0, 120)}... Pronto para o desafio?`;
+    doctorText.classList.add('quiz-text-animate');
+    setTimeout(() => doctorText.classList.remove('quiz-text-animate'), 600);
 
-    // Hide feedback and next button
-    document.getElementById('tour-feedback').style.display = 'none';
-    document.getElementById('tour-next-btn').style.display = 'none';
+    // Question
+    document.getElementById('quiz-question-text').textContent = q.question;
 
-    // Show question after a short delay (let user read intro)
-    setTimeout(function () {
-        showQuestion(tourData);
-    }, 2000);
-}
-
-/**
- * Show the question and options for the current step.
- */
-function showQuestion(tourData) {
-    var questionArea = document.getElementById('tour-question-area');
-    questionArea.style.display = 'block';
-
-    document.getElementById('tour-question').textContent = tourData.question;
-
-    var optionsContainer = document.getElementById('tour-options');
+    // Options
+    const optionsContainer = document.getElementById('quiz-options');
     optionsContainer.innerHTML = '';
+    q.options.forEach((option, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-option';
+        btn.textContent = option;
+        btn.dataset.index = i;
+        btn.addEventListener('click', () => checkAnswer(i));
+        optionsContainer.appendChild(btn);
+    });
 
-    for (var i = 0; i < tourData.options.length; i++) {
-        var optBtn = document.createElement('button');
-        optBtn.className = 'tour-option';
-        optBtn.textContent = tourData.options[i];
-        optBtn.dataset.index = i;
+    // Hide feedback/action
+    document.getElementById('quiz-feedback').style.display = 'none';
+    document.getElementById('quiz-action-btn').style.display = 'none';
 
-        optBtn.addEventListener('click', function () {
-            var selectedIndex = parseInt(this.dataset.index, 10);
-            checkAnswer(selectedIndex);
+    // Show hint
+    const hintEl = document.getElementById('quiz-hint');
+    hintEl.style.display = 'flex';
+    document.getElementById('quiz-hint-text').textContent = q.hint;
+};
+
+const checkAnswer = (selectedIndex) => {
+    if (hasAnswered) return;
+
+    const q = questions[currentStep];
+    const feedbackEl = document.getElementById('quiz-feedback');
+    const doctorText = document.getElementById('quiz-doctor-text');
+    const optionBtns = document.querySelectorAll('.quiz-option');
+
+    if (selectedIndex === q.correctIndex) {
+        // CORRECT
+        hasAnswered = true;
+        score += 10;
+        document.getElementById('quiz-score').textContent = score;
+
+        feedbackEl.style.display = 'block';
+        feedbackEl.className = 'quiz-feedback quiz-feedback-correct';
+        feedbackEl.innerHTML = '✅ <strong>CORRETO!</strong> +10 pontos';
+
+        doctorText.textContent = `Fantástico! Você realmente conhece ${q.planetName}! Allons-y!`;
+
+        optionBtns.forEach((btn, i) => {
+            btn.disabled = true;
+            if (i === q.correctIndex) btn.classList.add('correct');
         });
 
-        optionsContainer.appendChild(optBtn);
-    }
-}
+        // Update progress dot
+        markProgressDot(currentStep, 'correct');
 
-/**
- * Check if the selected answer is correct.
- */
-function checkAnswer(selectedIndex) {
-    var tourData = GUIDED_TOUR_DATA[currentTourStep];
-    var feedbackEl = document.getElementById('tour-feedback');
-    var dialogueEl = document.getElementById('tour-dialogue');
-    var optionBtns = document.querySelectorAll('.tour-option');
-
-    if (selectedIndex === tourData.correctIndex) {
-        // CORRECT
-        hasAnsweredCorrectly = true;
-        feedbackEl.style.display = 'block';
-        feedbackEl.className = 'tour-feedback tour-feedback-correct';
-        feedbackEl.textContent = '✅ CORRETO!';
-
-        dialogueEl.textContent = tourData.doctorCorrect;
-        dialogueEl.className = 'tour-dialogue tour-dialogue-animate';
-
-        // Highlight correct option
-        for (var i = 0; i < optionBtns.length; i++) {
-            optionBtns[i].disabled = true;
-            if (i === tourData.correctIndex) {
-                optionBtns[i].classList.add('correct');
-            }
-        }
-
-        // Show next button (or finish)
-        var nextBtn = document.getElementById('tour-next-btn');
-        if (currentTourStep >= GUIDED_TOUR_DATA.length - 1) {
-            nextBtn.textContent = '🏆 CONCLUIR AVENTURA';
-        } else {
-            nextBtn.textContent = 'PRÓXIMO PLANETA →';
-        }
-        nextBtn.style.display = 'block';
+        // Show next button
+        const actionBtn = document.getElementById('quiz-action-btn');
+        actionBtn.textContent = currentStep >= totalSteps - 1
+            ? '🏆 VER RESULTADO'
+            : `PRÓXIMO: ${questions[currentStep + 1]?.planetName || 'RESULTADO'} →`;
+        actionBtn.style.display = 'block';
 
     } else {
         // WRONG
         feedbackEl.style.display = 'block';
-        feedbackEl.className = 'tour-feedback tour-feedback-wrong';
-        feedbackEl.textContent = '❌ Tente novamente!';
+        feedbackEl.className = 'quiz-feedback quiz-feedback-wrong';
+        feedbackEl.innerHTML = '❌ Tente novamente!';
 
-        dialogueEl.textContent = tourData.doctorWrong;
-        dialogueEl.className = 'tour-dialogue tour-dialogue-animate';
+        doctorText.textContent = `Hmm, não é essa. ${q.hint}`;
 
-        // Highlight wrong option
-        for (var j = 0; j < optionBtns.length; j++) {
-            if (parseInt(optionBtns[j].dataset.index, 10) === selectedIndex) {
-                optionBtns[j].classList.add('wrong');
-                optionBtns[j].disabled = true;
+        optionBtns.forEach((btn) => {
+            if (parseInt(btn.dataset.index) === selectedIndex) {
+                btn.classList.add('wrong');
+                btn.disabled = true;
             }
-        }
+        });
     }
-}
+};
 
-/**
- * Advance to the next planet in the tour.
- */
-function advanceToNextPlanet() {
-    var nextStep = currentTourStep + 1;
-
-    // Hide question area
-    document.getElementById('tour-question-area').style.display = 'none';
-    document.getElementById('tour-feedback').style.display = 'none';
-    document.getElementById('tour-next-btn').style.display = 'none';
-
-    if (nextStep >= GUIDED_TOUR_DATA.length) {
-        showTourComplete();
+const advanceStep = () => {
+    const nextStep = currentStep + 1;
+    if (nextStep >= totalSteps) {
+        showCompletion();
     } else {
-        showTourStep(nextStep);
+        showStep(nextStep);
     }
-}
+};
 
-/**
- * Show the tour completion screen.
- */
-function showTourComplete() {
-    var dialogueEl = document.getElementById('tour-dialogue');
-    dialogueEl.textContent =
-        'Fantástico! Você completou a viagem por todo o Sistema Solar! ' +
-        'De Mercúrio a Netuno, passando por tempestades, vulcões e diamantes. ' +
-        'Você seria um excelente companheiro da TARDIS. Até a próxima aventura... Allons-y! 🌌';
-    dialogueEl.className = 'tour-dialogue tour-dialogue-animate';
+const showCompletion = () => {
+    const maxScore = totalSteps * 10;
+    const pct = Math.round((score / maxScore) * 100);
 
-    document.getElementById('tour-question-area').style.display = 'none';
-    document.getElementById('tour-feedback').style.display = 'none';
+    // Check badges earned
+    const earned = BADGE_DEFINITIONS.filter(b => score / 10 >= b.threshold);
 
-    var nextBtn = document.getElementById('tour-next-btn');
-    nextBtn.textContent = '🌟 ENCERRAR AVENTURA';
-    nextBtn.style.display = 'block';
+    // Update UI
+    document.getElementById('quiz-planet-badge').style.display = 'none';
+    document.getElementById('quiz-question-area').style.display = 'none';
+    document.getElementById('quiz-hint').style.display = 'none';
+    document.getElementById('quiz-feedback').style.display = 'none';
 
-    // Override click for final button
-    nextBtn.onclick = function () {
-        endGuidedTour();
-    };
+    const doctorText = document.getElementById('quiz-doctor-text');
+    doctorText.textContent = pct >= 80
+        ? `Brilhante! ${pct}% de acertos! Você seria um excelente companheiro da TARDIS. Geronimo! 🌌`
+        : pct >= 50
+            ? `Nada mal! ${pct}% de acertos. Continue explorando e tente novamente amanhã!`
+            : `Hmm, ${pct}% de acertos. Leia os detalhes dos planetas com mais atenção e volte amanhã!`;
 
-    // Update progress to 100%
-    document.getElementById('tour-progress-text').textContent = '9/9';
-    document.getElementById('tour-progress-fill').style.width = '100%';
+    document.getElementById('quiz-step').textContent = 'FIM';
 
-    // Show completion badge
-    var badgeEl = document.getElementById('tour-planet-badge');
-    badgeEl.style.display = 'flex';
-    document.getElementById('tour-planet-icon').textContent = '🏆';
-    document.getElementById('tour-planet-name').textContent = 'MISSÃO COMPLETA';
-}
+    // Show completion content
+    const optionsContainer = document.getElementById('quiz-options');
+    optionsContainer.innerHTML = '';
+    document.getElementById('quiz-question-area').style.display = 'block';
+    document.getElementById('quiz-question-text').innerHTML = `
+        <div class="quiz-completion">
+            <div class="quiz-completion-trophy">🏆</div>
+            <div class="quiz-completion-title">QUIZ COMPLETO!</div>
+            <div class="quiz-completion-score">${score}/${maxScore} PONTOS (${pct}%)</div>
+            ${earned.length > 0 ? `
+                <div class="quiz-completion-badges">
+                    ${earned.map(b => `
+                        <div class="quiz-completion-badge">
+                            <span class="qcb-icon">${b.icon}</span>
+                            <span class="qcb-name">${b.name}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            <div class="quiz-completion-hint">As perguntas mudam diariamente! Volte amanhã para novos desafios.</div>
+        </div>
+    `;
+
+    // Show badges animation
+    if (earned.length > 0) {
+        badgesEarned += earned.length;
+        updateBadgeCount();
+        showBadgeAchievement(earned[0]);
+    }
+
+    // Close button
+    const actionBtn = document.getElementById('quiz-action-btn');
+    actionBtn.textContent = '🌟 ENCERRAR AVENTURA';
+    actionBtn.style.display = 'block';
+    actionBtn.onclick = () => endTour();
+
+    // Mark all progress dots
+    updateProgress(totalSteps - 1);
+};
 
 // =============================================
-// HELPERS
+// PROGRESS & BADGES
 // =============================================
 
-/**
- * Find the index of a planet by its English name.
- */
-function findPlanetIndexByName(nameEN) {
-    for (var i = 0; i < PLANETS_DATA.length; i++) {
-        if (PLANETS_DATA[i].nameEN === nameEN) {
-            return i;
-        }
-    }
-    return -1;
-}
+const updateProgress = (stepIndex) => {
+    const fill = document.getElementById('quiz-progress-fill');
+    const pct = ((stepIndex + 1) / totalSteps) * 100;
+    fill.style.width = `${pct}%`;
+};
 
-/**
- * Update the progress indicator.
- */
-function updateProgress(stepIndex) {
-    var total = GUIDED_TOUR_DATA.length;
-    var progressText = document.getElementById('tour-progress-text');
-    var progressFill = document.getElementById('tour-progress-fill');
+const markProgressDot = (stepIndex, status) => {
+    const dots = document.querySelectorAll('.quiz-pp');
+    if (dots[stepIndex]) {
+        dots[stepIndex].classList.add(status);
+    }
+};
 
-    if (progressText) {
-        progressText.textContent = (stepIndex + 1) + '/' + total;
-    }
-    if (progressFill) {
-        var percent = ((stepIndex + 1) / total) * 100;
-        progressFill.style.width = percent + '%';
-    }
-}
+const updateBadgeCount = () => {
+    const countEl = document.getElementById('badges-count');
+    if (countEl) countEl.textContent = badgesEarned;
+};
+
+const showBadgeAchievement = (badge) => {
+    const el = document.getElementById('badge-achievement');
+    document.getElementById('badge-achievement-icon').textContent = badge.icon;
+    document.getElementById('badge-achievement-name').textContent = badge.name;
+    document.getElementById('badge-achievement-desc').textContent = badge.desc;
+
+    el.classList.add('active');
+
+    setTimeout(() => {
+        el.classList.remove('active');
+    }, 4000);
+};

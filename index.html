@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="T.A.R.D.I.S. — Explore o Sistema Solar com gestos e mouse. Texturas 8K + Visão computacional + NASA API.">
+    <meta name="description" content="T.A.R.D.I.S. — Explore o Sistema Solar interativamente. Texturas 8K, dados da NASA e modo aventura gamificado.">
     <title>T.A.R.D.I.S. — Solar System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
@@ -20,48 +20,59 @@
         </div>
     </div>
 
-    <!-- Camera & Canvas -->
-    <video id="input_video" playsinline></video>
+    <!-- Three.js Canvas (injected by setup.js) -->
     <canvas id="output_canvas"></canvas>
-    <canvas id="skeleton_canvas"></canvas>
 
     <!-- UI Layer -->
     <div id="ui-layer">
-        <!-- Header -->
-        <div class="header-bar">
-            <div class="logo">T.A.R.D.I.S. <span class="logo-version">⚡</span></div>
-            <div class="mode-indicator">
-                <span class="mode-dot" id="mode-dot"></span>
-                <span id="current-mode" class="status-neutral">SISTEMA SOLAR</span>
+        <!-- === NAVBAR === -->
+        <nav class="navbar" id="navbar">
+            <div class="nav-left">
+                <div class="nav-logo">T.A.R.D.I.S. <span class="nav-logo-bolt">⚡</span></div>
+                <div class="nav-state">
+                    <span class="nav-state-dot" id="mode-dot"></span>
+                    <span class="nav-state-label" id="current-mode">SISTEMA SOLAR</span>
+                </div>
             </div>
-        </div>
 
-        <!-- Scene State Indicator -->
+            <div class="nav-center">
+                <!-- Adventure Button — primary CTA -->
+                <button class="nav-adventure-btn" id="guided-tour-btn" title="Iniciar Modo Aventura">
+                    <span class="nav-adventure-icon">🌀</span>
+                    <span class="nav-adventure-text">MODO AVENTURA</span>
+                    <span class="nav-adventure-glow"></span>
+                </button>
+            </div>
+
+            <div class="nav-right">
+                <!-- Badges Placeholder -->
+                <div class="nav-badges" id="nav-badges" title="Insígnias conquistadas">
+                    <span class="nav-badges-icon">🏅</span>
+                    <span class="nav-badges-count" id="badges-count">0</span>
+                </div>
+                <!-- Profile Placeholder -->
+                <div class="nav-profile" id="nav-profile" title="Perfil do Explorador">
+                    <span class="nav-profile-icon">👤</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Breadcrumb (simplified: 2 states only) -->
         <div id="scene-breadcrumb">
             <span class="bc-item active" id="bc-solar">☀ SISTEMA SOLAR</span>
             <span class="bc-separator">›</span>
             <span class="bc-item" id="bc-planet">🪐 PLANETA</span>
-            <span class="bc-separator">›</span>
-            <span class="bc-item" id="bc-surface">🌍 SUPERFÍCIE</span>
         </div>
-
-        <!-- Crosshair -->
-        <div id="crosshair">
-            <div class="crosshair-ring"></div>
-            <div class="crosshair-dot"></div>
-        </div>
-        <div id="gps-data">LAT: 0.00 | LON: 0.00</div>
 
         <!-- Controls Panel -->
         <div id="controls-summary">
-            <div class="control-header">COMANDOS</div>
-            <div class="control-item"><span class="control-icon">✊</span><span class="key-desc">PUNHO: Mover</span></div>
-            <div class="control-item"><span class="control-icon">✋</span><span class="key-desc">PALMA: Escanear</span></div>
-            <div class="control-item"><span class="control-icon">✌️</span><span class="key-desc">PAZ: Zoom (+)</span></div>
-            <div class="control-item"><span class="control-icon">☝️</span><span class="key-desc">DEDO 1: Zoom (-)</span></div>
-            <div class="control-divider"></div>
+            <div class="control-header">CONTROLES</div>
             <div class="control-item"><span class="control-icon">🖱️</span><span class="key-desc">ARRASTAR: Rotacionar</span></div>
             <div class="control-item"><span class="control-icon">🔄</span><span class="key-desc">SCROLL: Zoom</span></div>
+            <div class="control-divider"></div>
+            <div class="control-item"><span class="control-icon">⌨️</span><span class="key-desc">SETAS: Navegar</span></div>
+            <div class="control-item"><span class="control-icon">↵</span><span class="key-desc">ENTER: Explorar</span></div>
+            <div class="control-item"><span class="control-icon">⎋</span><span class="key-desc">ESC: Voltar</span></div>
         </div>
 
         <!-- Planet Info Panel -->
@@ -99,35 +110,25 @@
                     </div>
                     <button class="pdm-close" id="pdm-close">✕</button>
                 </div>
-
                 <div class="pdm-body">
-                    <!-- Stats Grid -->
                     <section class="pdm-section">
                         <h2 class="pdm-section-title">📊 DADOS TÉCNICOS</h2>
                         <div class="pdm-stats-grid" id="pdm-stats-grid"></div>
                     </section>
-
-                    <!-- Description -->
                     <section class="pdm-section">
                         <h2 class="pdm-section-title">📖 SOBRE</h2>
                         <p class="pdm-description" id="pdm-description"></p>
                     </section>
-
-                    <!-- Image Gallery -->
                     <section class="pdm-section">
                         <h2 class="pdm-section-title">📷 GALERIA NASA</h2>
                         <div class="pdm-gallery" id="pdm-gallery">
                             <div class="pdm-gallery-loading">Carregando imagens da NASA...</div>
                         </div>
                     </section>
-
-                    <!-- Curiosities -->
                     <section class="pdm-section">
                         <h2 class="pdm-section-title">💡 CURIOSIDADES</h2>
                         <ul class="pdm-curiosities" id="pdm-curiosities"></ul>
                     </section>
-
-                    <!-- Missions Timeline -->
                     <section class="pdm-section">
                         <h2 class="pdm-section-title">🚀 MISSÕES RELACIONADAS</h2>
                         <div class="pdm-timeline" id="pdm-timeline"></div>
@@ -136,40 +137,50 @@
             </div>
         </div>
 
-        <!-- NASA APOD — Imagem do Dia -->
-        <div id="apod-widget">
-            <div class="apod-widget-header">
+        <!-- NASA APOD Widget -->
+        <div id="apod-widget" class="apod-collapsed">
+            <div class="apod-widget-header" id="apod-header-click">
                 <div class="apod-widget-header-left">
                     <span class="apod-icon-pulse">🔭</span>
                     <span class="apod-header-title">NASA — IMAGEM DO DIA</span>
                 </div>
-                <div class="apod-widget-date" id="apod-date"></div>
-            </div>
-            <div class="apod-image-wrapper" id="apod-image-wrapper">
-                <div class="apod-loading" id="apod-loading">
-                    <div class="apod-loading-ring"></div>
-                    <span>Carregando APOD...</span>
+                <div class="apod-header-right-group">
+                    <div class="apod-widget-date" id="apod-date"></div>
+                    <button class="apod-toggle" id="apod-toggle" title="Expandir / Minimizar">▶</button>
                 </div>
-                <img id="apod-image" alt="NASA Astronomy Picture of the Day" />
-                <div class="apod-image-overlay"></div>
             </div>
-            <div class="apod-info">
-                <div class="apod-title" id="apod-title"></div>
-                <div class="apod-description" id="apod-description"></div>
-                <div class="apod-copyright" id="apod-copyright"></div>
+            <div class="apod-collapsible">
+                <div class="apod-image-wrapper" id="apod-image-wrapper">
+                    <div class="apod-loading" id="apod-loading">
+                        <div class="apod-loading-ring"></div>
+                        <span>Carregando APOD...</span>
+                    </div>
+                    <img id="apod-image" alt="NASA Astronomy Picture of the Day" />
+                    <div class="apod-image-overlay"></div>
+                </div>
+                <div class="apod-info">
+                    <div class="apod-title" id="apod-title"></div>
+                    <div class="apod-description" id="apod-description"></div>
+                    <div class="apod-copyright" id="apod-copyright"></div>
+                </div>
             </div>
-            <button class="apod-toggle" id="apod-toggle" title="Expandir / Minimizar">▲</button>
+        </div>
+
+        <!-- Fullscreen Quiz Overlay (injected by guidedTour.js) -->
+
+        <!-- Badge Achievement Overlay -->
+        <div id="badge-achievement" class="badge-achievement">
+            <div class="badge-achievement-content">
+                <div class="badge-achievement-icon" id="badge-achievement-icon">🏅</div>
+                <div class="badge-achievement-title" id="badge-achievement-title">INSÍGNIA CONQUISTADA!</div>
+                <div class="badge-achievement-name" id="badge-achievement-name">--</div>
+                <div class="badge-achievement-desc" id="badge-achievement-desc">--</div>
+            </div>
         </div>
 
         <!-- Transition Overlay -->
         <div id="transition-overlay"></div>
     </div>
-
-    <!-- MediaPipe Hands -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
     <script type="module" src="js/main.js"></script>
 </body>

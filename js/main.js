@@ -1,5 +1,5 @@
 // ============================================
-// T.A.R.D.I.S. — MAIN ENTRY POINT (Performance-Optimized)
+// T.A.R.D.I.S. — MAIN ENTRY POINT (Refactored)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { SceneState, IS_MOBILE, ATMOSPHERE_ENABLED } from './config.js';
@@ -22,7 +22,6 @@ import { initPlanetDetailEvents } from './ui/planetDetail.js';
 import { createPlanetSelector, highlightPlanetSelector, showPlanetSelector, hidePlanetSelector } from './ui/planetSelector.js';
 import { initAPODWidget } from './ui/apodWidget.js';
 import { fetchNASAImage } from './api/nasaApi.js';
-import { initHandTracking, setHandCallbacks, isScanning } from './input/handTracking.js';
 import { initKeyboardControls, setKeyboardCallbacks } from './input/keyboard.js';
 import { initMouseControls, setMouseCallbacks } from './input/mouseControls.js';
 import { initTouchControls, setTouchCallbacks } from './input/touchControls.js';
@@ -30,7 +29,7 @@ import { initGuidedTour, isGuidedModeActive } from './ui/guidedTour.js';
 import { initFPSMonitor, updateFPS } from './ui/fpsMonitor.js';
 import { unloadSolarSystemDetails, reloadSolarSystemDetails } from './scene/renderOptimizer.js';
 
-// --- MOUSE ZOOM ---
+// --- CONSTANTS ---
 const MOUSE_ZOOM_STEP = 2.0;
 
 // --- APP STATE ---
@@ -39,52 +38,53 @@ let selectedPlanet = null;
 let selectedPlanetIndex = -1;
 let isTransitioning = false;
 
-// --- DOM ---
+// --- DOM CACHE ---
 const loadingScreen = document.getElementById('loading');
 const loadingStatus = document.getElementById('loading-status');
-const gpsData = document.getElementById('gps-data');
 const bcSolar = document.getElementById('bc-solar');
 const bcPlanet = document.getElementById('bc-planet');
-const bcSurface = document.getElementById('bc-surface');
 const transitionOverlay = document.getElementById('transition-overlay');
+const modeLabel = document.getElementById('current-mode');
+const modeDot = document.getElementById('mode-dot');
 
 // --- PRE-ALLOCATED VECTORS (Zero GC in render loop) ---
-// These are reused every frame instead of creating new objects.
 const _tempVec = new THREE.Vector3();
 const _frustum = new THREE.Frustum();
 const _projScreenMatrix = new THREE.Matrix4();
 const _boundingSphere = new THREE.Sphere();
+const _raycaster = new THREE.Raycaster();
 
 // --- STARFIELD ---
 const starfield = createStarfield();
 
+// --- HELPER: SET UI MODE ---
+const setMode = (text, color) => {
+    if (modeLabel) {
+        modeLabel.innerText = text;
+        modeLabel.style.color = color;
+    }
+    if (modeDot) modeDot.style.background = color;
+};
+
 // --- TRANSITIONS ---
-function enterPlanet(pData) {
+const enterPlanet = (pData) => {
     if (isTransitioning) return;
     isTransitioning = true;
     selectedPlanet = pData;
 
-    // Find planet index for optimizer
-    var enterPlanetIndex = -1;
-    for (var epi = 0; epi < PLANETS_DATA.length; epi++) {
-        if (PLANETS_DATA[epi].nameEN === pData.nameEN) {
-            enterPlanetIndex = epi;
-            break;
-        }
-    }
+    const enterPlanetIndex = PLANETS_DATA.findIndex(p => p.nameEN === pData.nameEN);
 
     transitionOverlay.classList.add('active');
-    updateBreadcrumb(SceneState.PLANET_SURFACE);
+    updateBreadcrumb('PLANET');
     hidePlanetSelector();
+    setMode(pData.name?.toUpperCase() || 'PLANETA', '#22c55e');
 
-    setTimeout(function () {
+    setTimeout(() => {
         currentState = SceneState.PLANET_SURFACE;
         solarSystemGroup.visible = false;
         planetSurfaceGroup.visible = true;
 
-        // Unload solar system resources to free GPU memory
         unloadSolarSystemDetails(enterPlanetIndex);
-
         createPlanetSurface(pData);
         resetSurfaceCamera();
 
@@ -94,24 +94,24 @@ function enterPlanet(pData) {
         showPlanetInfo(pData);
         fetchNASAImage(pData.nameEN);
 
-        setTimeout(function () {
+        setTimeout(() => {
             transitionOverlay.classList.remove('active');
             isTransitioning = false;
         }, 600);
     }, 800);
-}
+};
 
-function exitPlanet() {
+const exitPlanet = () => {
     if (isTransitioning) return;
     isTransitioning = true;
 
     transitionOverlay.classList.add('active');
-    updateBreadcrumb(SceneState.SOLAR_SYSTEM);
+    updateBreadcrumb('SOLAR');
+    setMode('SISTEMA SOLAR', '#0095FF');
 
-    setTimeout(function () {
+    setTimeout(() => {
         currentState = SceneState.SOLAR_SYSTEM;
 
-        // Reload solar system resources before showing
         reloadSolarSystemDetails();
 
         solarSystemGroup.visible = true;
@@ -119,7 +119,7 @@ function exitPlanet() {
 
         // Dispose surface resources (prevents WebGL memory leak)
         while (planetSurfaceGroup.children.length > 0) {
-            var child = planetSurfaceGroup.children[0];
+            const child = planetSurfaceGroup.children[0];
             deepDispose(child);
             planetSurfaceGroup.remove(child);
         }
@@ -133,27 +133,24 @@ function exitPlanet() {
         selectedPlanet = null;
         highlightPlanetSelector(-1);
 
-        // Only show planet selector if not in guided mode
         if (!isGuidedModeActive()) {
             showPlanetSelector();
         }
 
-        setTimeout(function () {
+        setTimeout(() => {
             transitionOverlay.classList.remove('active');
             isTransitioning = false;
         }, 600);
     }, 800);
-}
+};
 
-function updateBreadcrumb(state) {
-    bcSolar.classList.toggle('active', state === SceneState.SOLAR_SYSTEM);
-    bcPlanet.classList.toggle('active', false);
-    bcSurface.classList.toggle('active', state === SceneState.PLANET_SURFACE);
-}
+const updateBreadcrumb = (state) => {
+    bcSolar.classList.toggle('active', state === 'SOLAR');
+    bcPlanet.classList.toggle('active', state === 'PLANET');
+};
 
-// --- SCANNING ---
-// OPTIMIZED: Reuses _tempVec instead of creating new THREE.Vector3() each frame
-function findNearestPlanetToCamera() {
+// --- PLANET DETECTION (replaces hand scanning) ---
+const findNearestPlanetToCamera = () => {
     let closest = null;
     let minDist = Infinity;
 
@@ -169,79 +166,65 @@ function findNearestPlanetToCamera() {
     });
 
     return minDist < 0.8 ? closest : null;
-}
+};
 
-function getCoordinatesFromRotation(rY, rX) {
+// --- RAYCAST CLICK DETECTION ---
+const raycastPlanetAt = (screenX, screenY) => {
+    const rect = renderer.domElement.getBoundingClientRect();
+    _tempVec.set(
+        ((screenX - rect.left) / rect.width) * 2 - 1,
+        -((screenY - rect.top) / rect.height) * 2 + 1,
+        0.5
+    );
+    _raycaster.setFromCamera(_tempVec, camera);
+    const intersects = _raycaster.intersectObjects(planetMeshes, false);
+    if (intersects.length > 0) {
+        const { planetData, planetIndex } = intersects[0].object.userData;
+        if (planetData) return { planetData, planetIndex };
+    }
+    return null;
+};
+
+const getCoordinatesFromRotation = (rY, rX) => {
     let lon = -((rY % (Math.PI * 2)) / Math.PI) * 180;
-    lon = (lon % 360);
+    lon = lon % 360;
     if (lon > 180) lon -= 360;
     if (lon < -180) lon += 360;
     lon -= 90;
     if (lon < -180) lon += 360;
-    let lat = (rX / (Math.PI / 2)) * 90;
+    const lat = (rX / (Math.PI / 2)) * 90;
     return { lat, lon };
-}
-
-// --- WIRE UP HAND CALLBACKS ---
-setHandCallbacks({
-    onMove: function (dx, dy) {
-        if (isGuidedModeActive()) return;
-        if (currentState === SceneState.SOLAR_SYSTEM) {
-            rotateSolarCamera(dx, dy);
-        } else {
-            rotateSurfaceCamera(dx, dy);
-        }
-    },
-    onZoomIn: function () {
-        if (isGuidedModeActive()) return;
-        if (currentState === SceneState.SOLAR_SYSTEM) {
-            zoomIn();
-        } else {
-            zoomSurfaceIn();
-        }
-    },
-    onZoomOut: function () {
-        if (isGuidedModeActive()) return;
-        if (currentState === SceneState.SOLAR_SYSTEM) {
-            zoomOut();
-        } else {
-            zoomSurfaceOut();
-            if (targetSurfaceScale <= 0.35) {
-                exitPlanet();
-            }
-        }
-    }
-});
+};
 
 // --- WIRE UP KEYBOARD CALLBACKS ---
 setKeyboardCallbacks({
-    onNavigateNext: function () {
+    onNavigateNext: () => {
         if (isTransitioning || isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
-            var newIndex = navigateNext();
+            const newIndex = navigateNext();
             selectedPlanetIndex = newIndex;
             selectedPlanet = PLANETS_DATA[newIndex];
             showPlanetInfo(selectedPlanet);
             highlightPlanetSelector(newIndex);
         }
     },
-    onNavigatePrev: function () {
+    onNavigatePrev: () => {
         if (isTransitioning || isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
-            var newIndex = navigatePrev();
+            const newIndex = navigatePrev();
             selectedPlanetIndex = newIndex;
             selectedPlanet = PLANETS_DATA[newIndex];
             showPlanetInfo(selectedPlanet);
             highlightPlanetSelector(newIndex);
         }
     },
-    onEnterPlanet: function () {
+    onEnterPlanet: () => {
         if (isTransitioning || isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM && selectedPlanet) {
             enterPlanet(selectedPlanet);
         }
     },
-    onExitPlanet: function () {
+    onExitPlanet: () => {
         if (isTransitioning || isGuidedModeActive()) return;
         if (currentState === SceneState.PLANET_SURFACE) {
             exitPlanet();
@@ -251,7 +234,7 @@ setKeyboardCallbacks({
 
 // --- WIRE UP MOUSE CALLBACKS ---
 setMouseCallbacks({
-    onMove: function (dx, dy) {
+    onMove: (dx, dy) => {
         if (isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
             rotateSolarCamera(dx, dy);
@@ -259,7 +242,7 @@ setMouseCallbacks({
             rotateSurfaceCamera(dx, dy);
         }
     },
-    onZoomIn: function () {
+    onZoomIn: () => {
         if (isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
             zoomIn(MOUSE_ZOOM_STEP);
@@ -267,7 +250,7 @@ setMouseCallbacks({
             zoomSurfaceIn(0.05);
         }
     },
-    onZoomOut: function () {
+    onZoomOut: () => {
         if (isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
             zoomOut(MOUSE_ZOOM_STEP);
@@ -275,6 +258,21 @@ setMouseCallbacks({
             zoomSurfaceOut(0.05);
             if (targetSurfaceScale <= 0.35) {
                 exitPlanet();
+            }
+        }
+    },
+    onClick: (x, y) => {
+        if (isTransitioning || isGuidedModeActive()) return;
+        if (currentState === SceneState.SOLAR_SYSTEM) {
+            const hit = raycastPlanetAt(x, y);
+            if (hit) {
+                const { planetData, planetIndex } = hit;
+                selectedPlanet = planetData;
+                selectedPlanetIndex = planetIndex;
+                navigateToPlanet(planetIndex);
+                showPlanetInfo(planetData);
+                highlightPlanetSelector(planetIndex);
+                enterPlanet(planetData);
             }
         }
     }
@@ -282,7 +280,7 @@ setMouseCallbacks({
 
 // --- WIRE UP TOUCH CALLBACKS ---
 setTouchCallbacks({
-    onMove: function (dx, dy) {
+    onMove: (dx, dy) => {
         if (isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
             rotateSolarCamera(dx, dy);
@@ -290,7 +288,7 @@ setTouchCallbacks({
             rotateSurfaceCamera(dx, dy);
         }
     },
-    onZoomIn: function () {
+    onZoomIn: () => {
         if (isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
             zoomIn(MOUSE_ZOOM_STEP);
@@ -298,7 +296,7 @@ setTouchCallbacks({
             zoomSurfaceIn(0.05);
         }
     },
-    onZoomOut: function () {
+    onZoomOut: () => {
         if (isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
             zoomOut(MOUSE_ZOOM_STEP);
@@ -309,33 +307,18 @@ setTouchCallbacks({
             }
         }
     },
-    onTap: function (x, y) {
-        // Tap on mobile = try to select a planet or enter it
+    onTap: (x, y) => {
         if (isTransitioning || isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
-            // Raycast to find tapped planet
-            var rect = renderer.domElement.getBoundingClientRect();
-            _tempVec.set(
-                ((x - rect.left) / rect.width) * 2 - 1,
-                -((y - rect.top) / rect.height) * 2 + 1,
-                0.5
-            );
-            var raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(_tempVec, camera);
-            var intersects = raycaster.intersectObjects(planetMeshes, false);
-            if (intersects.length > 0) {
-                var hit = intersects[0].object;
-                var pData = hit.userData.planetData;
-                var pIndex = hit.userData.planetIndex;
-                if (pData) {
-                    selectedPlanet = pData;
-                    selectedPlanetIndex = pIndex;
-                    navigateToPlanet(pIndex);
-                    showPlanetInfo(pData);
-                    highlightPlanetSelector(pIndex);
-                    // Enter planet on tap
-                    enterPlanet(pData);
-                }
+            const hit = raycastPlanetAt(x, y);
+            if (hit) {
+                const { planetData, planetIndex } = hit;
+                selectedPlanet = planetData;
+                selectedPlanetIndex = planetIndex;
+                navigateToPlanet(planetIndex);
+                showPlanetInfo(planetData);
+                highlightPlanetSelector(planetIndex);
+                enterPlanet(planetData);
             }
         }
     }
@@ -344,13 +327,12 @@ setTouchCallbacks({
 // --- ANIMATION LOOP ---
 let prevTime = performance.now();
 
-function animate() {
+const animate = () => {
     requestAnimationFrame(animate);
-    var now = performance.now();
-    var delta = (now - prevTime) / 1000;
+    const now = performance.now();
+    const delta = (now - prevTime) / 1000;
     prevTime = now;
 
-    // Update FPS monitor every frame
     updateFPS(delta);
 
     if (currentState === SceneState.SOLAR_SYSTEM) {
@@ -360,70 +342,54 @@ function animate() {
     }
 
     renderer.render(scene, camera);
-}
+};
 
-function animateSolarSystem(delta) {
+const animateSolarSystem = (delta) => {
     const time = performance.now() * 0.001;
 
-    // --- FRUSTUM CULLING SETUP ---
-    // Build the view frustum from the camera's projection + world matrices.
-    // Objects outside this frustum are invisible — skip their visual updates.
+    // Frustum culling setup
     _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     _frustum.setFromProjectionMatrix(_projScreenMatrix);
 
     planetMeshes.forEach(mesh => {
-        const pData = mesh.userData.planetData;
+        const { planetData: pData } = mesh.userData;
 
         if (pData.isStar) {
-            // Sun is always at origin and always visible
             mesh.rotation.y += 0.001;
-            if (mesh.userData.glows) {
-                mesh.userData.glows.forEach((glow, i) => {
-                    const layerSpeed = 1.5 + i * 0.7;
-                    const layerAmp = 0.04 + i * 0.02;
-                    const pulse = 1 + Math.sin(time * layerSpeed + i) * layerAmp;
-                    const baseScale = [1.15, 1.35, 1.6][i] || 1.2;
-                    glow.scale.set(
-                        pData.radius * baseScale * pulse,
-                        pData.radius * baseScale * pulse,
-                        pData.radius * baseScale * pulse
-                    );
-                });
-            }
+            mesh.userData.glows?.forEach((glow, i) => {
+                const layerSpeed = 1.5 + i * 0.7;
+                const layerAmp = 0.04 + i * 0.02;
+                const pulse = 1 + Math.sin(time * layerSpeed + i) * layerAmp;
+                const baseScale = [1.15, 1.35, 1.6][i] || 1.2;
+                const s = pData.radius * baseScale * pulse;
+                glow.scale.set(s, s, s);
+            });
         } else {
-            // --- ORBITAL POSITION (always update, needed for navigation) ---
+            // Orbital position (always update)
             const angle = time * pData.speed + (pData.orbitOffset || 0);
             mesh.position.x = Math.cos(angle) * pData.distance;
             mesh.position.z = Math.sin(angle) * pData.distance;
 
-            // --- FRUSTUM CULLING CHECK ---
-            // Build a bounding sphere for this planet and test against the frustum.
-            // If the planet is outside the view, skip all visual updates (rotation,
-            // clouds, atmosphere shimmer). The position update above is still needed
-            // so the orbit is correct when the planet scrolls back into view.
+            // Frustum culling check
             _boundingSphere.center.copy(mesh.position);
-            _boundingSphere.radius = pData.radius * 3; // generous margin
+            _boundingSphere.radius = pData.radius * 3;
             if (!_frustum.intersectsSphere(_boundingSphere)) {
                 mesh.visible = false;
-                return; // Skip all visual work for this planet
+                return;
             }
             mesh.visible = true;
 
-            // --- VISUAL UPDATES (only for visible planets) ---
+            // Visual updates (only for visible planets)
             if (pData.tilt) mesh.rotation.z = pData.tilt;
             mesh.rotation.y += 0.005;
 
             if (mesh.userData.clouds) mesh.userData.clouds.rotation.y += 0.002;
 
-            // Atmosphere shimmer — only on desktop (ATMOSPHERE_ENABLED)
             if (mesh.userData.atmosphere && ATMOSPHERE_ENABLED) {
                 const shimmer = 1 + Math.sin(time * 1.5 + pData.distance) * 0.015;
                 const atmoScale = (pData.atmosphereScale || 1.06) * shimmer;
-                mesh.userData.atmosphere.scale.set(
-                    pData.radius * atmoScale,
-                    pData.radius * atmoScale,
-                    pData.radius * atmoScale
-                );
+                const s = pData.radius * atmoScale;
+                mesh.userData.atmosphere.scale.set(s, s, s);
             }
         }
     });
@@ -431,30 +397,17 @@ function animateSolarSystem(delta) {
     animateComets(time);
     updateSolarCamera();
 
-    // Scanning
-    if (isScanning) {
-        const nearest = findNearestPlanetToCamera();
-        if (nearest) {
-            selectedPlanet = nearest.userData.planetData;
-            selectedPlanetIndex = nearest.userData.planetIndex;
-            showPlanetInfo(selectedPlanet);
-            highlightPlanetSelector(selectedPlanetIndex);
-        } else {
-            hideInfoPanel();
-            selectedPlanet = null;
-            selectedPlanetIndex = -1;
-            highlightPlanetSelector(-1);
-        }
-    } else {
-        if (!isTransitioning && selectedPlanetIndex === -1) {
-            hideInfoPanel();
-        }
+    // Auto-detect nearest planet to camera center (no scanning needed)
+    if (!isTransitioning && selectedPlanetIndex !== -1) {
+        // Keep showing info for selected planet
+    } else if (!isTransitioning) {
+        hideInfoPanel();
     }
 
     starfield.rotation.y += 0.00005;
-}
+};
 
-function animatePlanetSurface(delta) {
+const animatePlanetSurface = (delta) => {
     const sg = planetSurfaceGroup.children[0];
     if (!sg) return;
 
@@ -486,40 +439,18 @@ function animatePlanetSurface(delta) {
         lm.marker.scale.set(pulse * 0.8, pulse * 0.8, pulse * 0.8);
     });
 
-    // GPS
-    const coords = getCoordinatesFromRotation(sg.rotation.y, sg.rotation.x);
-    gpsData.innerText = `LAT: ${coords.lat.toFixed(1)} | LON: ${coords.lon.toFixed(1)}`;
-
-    if (isScanning && selectedPlanet?.planetType === 'earth') {
-        const landmark = findNearestLandmark(coords.lat, coords.lon);
-        if (landmark) {
-            showLandmarkInfo(landmark, selectedPlanet);
-        } else {
-            document.getElementById('landmark-info').style.display = 'none';
-            const loc = findNearestLocation(coords.lat, coords.lon);
-            if (loc) {
-                document.getElementById('info-badge').textContent = 'PAÍS';
-                document.getElementById('geo-name').textContent = loc.name;
-                document.getElementById('geo-coord').textContent = `${coords.lat.toFixed(1)}°, ${coords.lon.toFixed(1)}°`;
-                document.getElementById('info-panel').classList.add('active');
-            }
-        }
-    } else if (isScanning && selectedPlanet) {
-        showPlanetInfo(selectedPlanet);
-    }
-
     camera.position.set(0, 0, 14);
     camera.lookAt(0, 0, 0);
-}
+};
 
 // --- INIT ---
-async function init() {
-    loadingStatus.textContent = 'INICIALIZANDO CÂMERA...';
+const init = async () => {
+    loadingStatus.textContent = 'INICIALIZANDO...';
 
     createSolarSystem();
 
     // Planet selector with navigation callback
-    createPlanetSelector(function (pData, index) {
+    createPlanetSelector((pData, index) => {
         if (isTransitioning || isGuidedModeActive()) return;
         if (currentState === SceneState.SOLAR_SYSTEM) {
             selectedPlanetIndex = index;
@@ -537,36 +468,29 @@ async function init() {
 
     // Init Guided Tour (Doctor Who Mode)
     initGuidedTour({
-        enterPlanet: function (pData) { enterPlanet(pData); },
-        exitPlanet: function () {
-            if (currentState === SceneState.PLANET_SURFACE) {
-                exitPlanet();
-            }
+        enterPlanet: (pData) => enterPlanet(pData),
+        exitPlanet: () => {
+            if (currentState === SceneState.PLANET_SURFACE) exitPlanet();
         }
     });
 
     // Init FPS Monitor
     initFPSMonitor();
 
-    // Init input — all three input methods coexist seamlessly
-    initHandTracking();     // Disabled on mobile via MEDIAPIPE_ENABLED flag
-    initKeyboardControls(); // Always active (external keyboards on tablets)
-    initMouseControls();    // Active on desktop
-    initTouchControls();    // Active on touch devices
+    // Init input — mouse, keyboard, and touch coexist seamlessly
+    initKeyboardControls();
+    initMouseControls();
+    initTouchControls();
 
-    // Set initial breadcrumb
-    updateBreadcrumb(SceneState.SOLAR_SYSTEM);
+    // Set initial breadcrumb and mode
+    updateBreadcrumb('SOLAR');
+    setMode('SISTEMA SOLAR', '#0095FF');
 
-    // Log device info
-    console.log(`[T.A.R.D.I.S.] Device: ${IS_MOBILE ? 'MOBILE' : 'DESKTOP'} | Touch: ${initTouchControls ? 'ENABLED' : 'DISABLED'}`);
+    // Hide loading screen
+    loadingScreen.style.display = 'none';
 
-    // Loading timeout
-    setTimeout(() => {
-        if (loadingScreen.style.display !== 'none') {
-            loadingStatus.textContent = 'AGUARDANDO CÂMERA...';
-        }
-    }, 5000);
-}
+    console.log(`[T.A.R.D.I.S.] Device: ${IS_MOBILE ? 'MOBILE' : 'DESKTOP'} | Input: MOUSE + KEYBOARD + TOUCH`);
+};
 
 // --- RESIZE ---
 window.addEventListener('resize', handleResize);
