@@ -1,0 +1,347 @@
+/* --- NASA APOD WIDGET --- */
+#apod-widget {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 360px;
+    background: linear-gradient(145deg, rgba(2, 8, 22, 0.94), rgba(8, 16, 40, 0.92));
+    border: 1px solid rgba(0, 149, 255, 0.12);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    box-shadow:
+        0 12px 48px rgba(0, 0, 0, 0.6),
+        0 0 1px rgba(0, 149, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+    transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 5;
+    pointer-events: auto;
+}
+
+#apod-widget.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Collapsed state — only header visible */
+#apod-widget.apod-collapsed {
+    width: 280px;
+    border-radius: 12px;
+}
+
+#apod-widget.apod-collapsed .apod-collapsible {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+#apod-widget.apod-collapsed .apod-widget-header {
+    border-bottom: none;
+}
+
+/* Expanded state */
+#apod-widget.expanded {
+    width: 420px;
+}
+
+.apod-collapsible {
+    max-height: 600px;
+    overflow: hidden;
+    opacity: 1;
+    transition: max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+}
+
+/* Header */
+.apod-widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.06), transparent);
+}
+
+.apod-widget-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.apod-header-right-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.apod-icon-pulse {
+    font-size: 16px;
+    animation: apodIconPulse 3s ease-in-out infinite;
+}
+
+@keyframes apodIconPulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.15) rotate(5deg); filter: brightness(1.4); }
+}
+
+.apod-header-title {
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--lamp-gold);
+    text-transform: uppercase;
+}
+
+.apod-widget-date {
+    font-family: var(--font-display);
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 3px 8px;
+    border-radius: 10px;
+}
+
+/* Image Wrapper */
+.apod-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+#apod-widget.expanded .apod-image-wrapper {
+    height: 260px;
+}
+
+/* Loading */
+.apod-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 2;
+    background: rgba(2, 8, 22, 0.8);
+}
+
+.apod-loading span {
+    font-family: var(--font-display);
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--tardis-bright);
+    opacity: 0.6;
+    animation: blink 1.5s step-end infinite;
+}
+
+.apod-loading-ring {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(0, 149, 255, 0.15);
+    border-top-color: var(--tardis-bright);
+    border-radius: 50%;
+    animation: apodSpin 1s linear infinite;
+}
+
+@keyframes apodSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Image */
+#apod-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transform: scale(1.03);
+    transition: opacity 0.8s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    filter: saturate(1.1) contrast(1.05);
+}
+
+#apod-image.loaded {
+    opacity: 1;
+}
+
+.apod-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        180deg,
+        transparent 40%,
+        rgba(2, 8, 22, 0.3) 70%,
+        rgba(2, 8, 22, 0.7) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Shimmer effect on hover */
+.apod-image-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        135deg,
+        transparent 30%,
+        rgba(0, 149, 255, 0.04) 50%,
+        transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.apod-image-wrapper:hover::after {
+    opacity: 1;
+    animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Video link fallback */
+.apod-video-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--tardis-bright);
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-decoration: none;
+    background: rgba(0, 149, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.apod-video-link:hover {
+    background: rgba(0, 149, 255, 0.1);
+    text-shadow: 0 0 16px var(--tardis-bright);
+}
+
+/* Info */
+.apod-info {
+    padding: 14px 16px;
+}
+
+.apod-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+    text-shadow: 0 0 12px rgba(0, 149, 255, 0.1);
+}
+
+.apod-description {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-weight: 300;
+    max-height: 60px;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity: 0.8;
+}
+
+#apod-widget.expanded .apod-description {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.apod-description::-webkit-scrollbar { width: 3px; }
+.apod-description::-webkit-scrollbar-thumb { background: var(--tardis-blue-dim); border-radius: 3px; }
+
+.apod-copyright {
+    margin-top: 8px;
+    font-size: 9px;
+    color: #555;
+    font-style: italic;
+    letter-spacing: 0.5px;
+}
+
+/* Toggle Button — inline in header */
+.apod-toggle {
+    width: 26px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+    flex-shrink: 0;
+}
+
+.apod-toggle:hover {
+    background: rgba(0, 149, 255, 0.15);
+    border-color: var(--tardis-blue-dim);
+    color: var(--tardis-bright);
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(0, 149, 255, 0.2);
+}
+
+/* Glow border animation on visible */
+#apod-widget.visible {
+    animation: apodAppear 1.2s ease forwards;
+}
+
+@keyframes apodAppear {
+    0% { border-color: rgba(0, 149, 255, 0.12); }
+    50% { border-color: rgba(0, 149, 255, 0.3); box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 149, 255, 0.1); }
+    100% { border-color: rgba(0, 149, 255, 0.12); }
+}
+/* === TABLET (max-width: 768px) === */
+    /* APOD Widget */
+    #apod-widget {
+        width: 300px;
+        bottom: 80px;
+    }
+    #apod-widget.expanded { width: 340px; }
+    .apod-image-wrapper { height: 140px; }
+}
+@media (max-width: 480px) {
+    /* APOD Widget - full width */
+    #apod-widget {
+        width: calc(100% - 20px);
+        left: 10px;
+        bottom: 70px;
+        border-radius: 12px;
+    }
+    #apod-widget.expanded { width: calc(100% - 20px); }
+    .apod-image-wrapper { height: 120px; }
+    #apod-widget.expanded .apod-image-wrapper { height: 180px; }
+    .apod-info { padding: 10px 12px; }
+    .apod-title { font-size: 10px; }
+    .apod-description { font-size: 10px; max-height: 40px; }
+    .apod-toggle { width: 22px; height: 22px; font-size: 8px; }
+
+    /* APOD collapsed on mobile */
+    #apod-widget.apod-collapsed { width: calc(100% - 20px); }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+    #apod-widget { display: none; }
+}
+@media (max-height: 800px) {
+    #apod-widget { bottom: 12px; }
+    #apod-widget.apod-collapsed { width: 260px; }
+}

@@ -1,0 +1,755 @@
+/* --- LOADING SCREEN --- */
+#loading {
+    position: fixed; inset: 0;
+    background: var(--bg-deep);
+    z-index: 999;
+    display: flex; align-items: center; justify-content: center;
+}
+
+.loading-content {
+    text-align: center;
+}
+
+.loading-logo {
+    font-family: var(--font-display);
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    background: linear-gradient(135deg, var(--tardis-bright), var(--vortex), var(--vortex-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: loadingPulse 2s ease-in-out infinite;
+}
+
+.loading-version {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--text-secondary);
+    letter-spacing: 4px;
+    margin-top: 8px;
+}
+
+.loading-bar {
+    width: 280px;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    margin: 30px auto 16px;
+    overflow: hidden;
+}
+
+.loading-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--tardis-bright), var(--vortex));
+    border-radius: 3px;
+    animation: loadBar 3s ease-in-out forwards;
+}
+
+.loading-status {
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--tardis-bright);
+    letter-spacing: 2px;
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes loadingPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes loadBar {
+    0% { width: 0%; }
+    30% { width: 40%; }
+    60% { width: 70%; }
+    100% { width: 100%; }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* === NAVBAR === */
+.navbar {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 24px;
+    background: linear-gradient(180deg, rgba(2,8,22,0.9) 0%, rgba(2,8,22,0.4) 70%, transparent 100%);
+    z-index: 20;
+    pointer-events: auto;
+}
+
+.nav-left, .nav-right {
+    display: flex; align-items: center; gap: 14px;
+    flex: 1;
+}
+
+.nav-right { justify-content: flex-end; }
+.nav-center { flex: 0 0 auto; }
+
+.nav-logo {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    background: linear-gradient(135deg, var(--tardis-bright), var(--vortex));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 12px var(--tardis-glow));
+}
+
+.nav-logo-bolt {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.nav-state {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--bg-panel);
+    padding: 6px 12px;
+    border-radius: 16px;
+    border: 1px solid var(--tardis-blue-dim);
+    backdrop-filter: blur(10px);
+    letter-spacing: 1px;
+}
+
+.nav-state-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--tardis-bright);
+    box-shadow: 0 0 8px var(--tardis-bright);
+    animation: dotPulse 2s ease-in-out infinite;
+}
+
+.nav-state-label {
+    color: var(--tardis-bright);
+}
+
+@keyframes dotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* --- Adventure Button (Primary CTA) --- */
+.nav-adventure-btn {
+    position: relative;
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 2.5px;
+    font-weight: 900;
+    color: #fff;
+    background: linear-gradient(135deg, var(--vortex), var(--vortex-light), #a855f7);
+    border: 2px solid rgba(168, 85, 247, 0.5);
+    border-radius: 28px;
+    padding: 12px 28px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    text-transform: uppercase;
+    box-shadow: 0 4px 20px rgba(123, 47, 190, 0.35), 0 0 40px rgba(168, 85, 247, 0.1);
+    overflow: hidden;
+}
+
+.nav-adventure-icon {
+    font-size: 18px;
+    animation: adventureIconSpin 4s linear infinite;
+}
+
+@keyframes adventureIconSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.nav-adventure-glow {
+    position: absolute; inset: -2px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, var(--vortex), var(--vortex-light), var(--tardis-bright), var(--vortex));
+    background-size: 300% 300%;
+    animation: adventureGlow 3s ease-in-out infinite;
+    z-index: -1;
+    opacity: 0.6;
+    filter: blur(8px);
+}
+
+@keyframes adventureGlow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.nav-adventure-btn:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 32px rgba(123, 47, 190, 0.5), 0 0 60px rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.8);
+}
+
+.nav-adventure-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.nav-adventure-btn.active {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+    animation: none;
+}
+
+.nav-adventure-btn.active .nav-adventure-glow { display: none; }
+.nav-adventure-btn.active .nav-adventure-icon { animation: none; }
+
+/* --- Badges & Profile Placeholders --- */
+.nav-badges, .nav-profile {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--text-secondary);
+    background: var(--bg-panel);
+    padding: 8px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 1px;
+}
+
+.nav-badges:hover, .nav-profile:hover {
+    border-color: rgba(168, 85, 247, 0.3);
+    background: rgba(168, 85, 247, 0.06);
+}
+
+.nav-badges-icon, .nav-profile-icon {
+    font-size: 16px;
+}
+
+.nav-badges-count {
+    font-weight: 700;
+    color: var(--lamp-gold);
+    min-width: 14px;
+    text-align: center;
+}
+
+/* --- BREADCRUMB --- */
+#scene-breadcrumb {
+    position: absolute;
+    top: 62px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 1px;
+    background: var(--bg-panel);
+    padding: 6px 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(8px);
+}
+
+.bc-item {
+    color: #444;
+    transition: color 0.4s, text-shadow 0.4s;
+}
+
+.bc-item.active {
+    color: var(--tardis-bright);
+    text-shadow: 0 0 10px var(--tardis-glow);
+}
+
+.bc-separator {
+    color: #333;
+    font-size: 14px;
+}
+
+
+
+/* --- CONTROLS PANEL --- */
+#controls-summary {
+    position: absolute; top: 100px; left: 20px;
+    width: 180px;
+    background: var(--bg-panel);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.control-header {
+    font-family: var(--font-display);
+    font-size: 9px;
+    color: var(--tardis-bright);
+    letter-spacing: 2px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding-bottom: 8px;
+}
+
+.control-item {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.control-icon {
+    font-size: 18px;
+    width: 28px;
+    text-align: center;
+}
+
+.key-desc { opacity: 0.8; font-weight: 300; }
+
+.control-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    margin: 4px 0;
+}
+
+/* --- TRANSITION OVERLAY --- */
+#transition-overlay {
+    position: fixed; inset: 0;
+    background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 100%);
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+}
+
+#transition-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* --- PLANET SELECTOR --- */
+#planet-selector {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-panel);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 10px 16px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 1px rgba(0, 149, 255, 0.2);
+    pointer-events: auto;
+    z-index: 5;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+#planet-selector.hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+    pointer-events: none;
+}
+
+.ps-header {
+    font-family: var(--font-display);
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--tardis-bright);
+    text-align: center;
+    margin-bottom: 10px;
+    opacity: 0.7;
+}
+
+.ps-list {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.ps-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: 1px solid transparent;
+    min-width: 52px;
+}
+
+.ps-item:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.1);
+    transform: translateY(-2px);
+}
+
+.ps-item.active {
+    background: rgba(0, 149, 255, 0.1);
+    border-color: var(--tardis-blue-dim);
+    box-shadow: 0 0 16px rgba(0, 149, 255, 0.15);
+    transform: translateY(-4px);
+}
+
+.ps-color {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    transition: all 0.25s ease;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+
+.ps-item:hover .ps-color {
+    transform: scale(1.2);
+    border-color: rgba(255,255,255,0.3);
+}
+
+.ps-item.active .ps-color {
+    transform: scale(1.3);
+    border-color: var(--tardis-bright);
+    animation: selectorPulse 2s ease-in-out infinite;
+}
+
+.ps-name {
+    font-family: var(--font-display);
+    font-size: 7px;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: color 0.25s ease;
+}
+
+.ps-item:hover .ps-name {
+    color: var(--text-primary);
+}
+
+.ps-item.active .ps-name {
+    color: var(--tardis-bright);
+    text-shadow: 0 0 8px var(--tardis-glow);
+}
+
+@keyframes selectorPulse {
+    0%, 100% { box-shadow: 0 0 6px currentColor; }
+    50% { box-shadow: 0 0 14px currentColor, 0 0 24px currentColor; }
+}
+
+/* =============================================
+   FPS MONITOR
+   ============================================= */
+
+#fps-monitor {
+    position: absolute;
+    bottom: 16px;
+    right: 20px;
+    width: 120px;
+    background: linear-gradient(145deg, rgba(2, 8, 22, 0.92), rgba(8, 16, 40, 0.88));
+    border: 1px solid rgba(0, 255, 136, 0.12);
+    border-radius: 10px;
+    padding: 8px 10px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 8;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    opacity: 0.6;
+}
+
+#fps-monitor:hover {
+    border-color: rgba(0, 255, 136, 0.25);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 255, 136, 0.08);
+    opacity: 1;
+}
+
+.fps-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+}
+
+.fps-label {
+    font-family: var(--font-display);
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.fps-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 900;
+    color: #00ff88;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.fps-value.fps-good {
+    color: #00ff88;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.fps-value.fps-warn {
+    color: #ffc800;
+    text-shadow: 0 0 10px rgba(255, 200, 0, 0.3);
+}
+
+.fps-value.fps-bad {
+    color: #ff3c3c;
+    text-shadow: 0 0 10px rgba(255, 60, 60, 0.3);
+    animation: fpsBadPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes fpsBadPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.fps-chart-container {
+    width: 100%;
+    height: 32px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.fps-chart-container canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.fps-details {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+#fps-monitor.expanded .fps-details {
+    display: flex;
+}
+
+.fps-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fps-stat-label {
+    font-family: var(--font-display);
+    font-size: 6px;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.fps-stat-val {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* =============================================
+   BADGE ACHIEVEMENT OVERLAY
+   ============================================= */
+
+.badge-achievement {
+    position: fixed;
+    top: 80px; right: 24px;
+    width: 320px;
+    z-index: 100;
+    opacity: 0;
+    transform: translateX(100%);
+    pointer-events: none;
+    transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.badge-achievement.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+.badge-achievement-content {
+    background: linear-gradient(145deg, rgba(2, 8, 22, 0.96), rgba(40, 20, 60, 0.94));
+    border: 2px solid rgba(255, 200, 0, 0.3);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 200, 0, 0.1);
+    animation: badgeGlow 2s ease-in-out infinite;
+}
+
+@keyframes badgeGlow {
+    0%, 100% { border-color: rgba(255, 200, 0, 0.3); box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6); }
+    50% { border-color: rgba(255, 200, 0, 0.6); box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 200, 0, 0.15); }
+}
+
+.badge-achievement-icon {
+    font-size: 48px;
+    animation: trophyBounce 0.8s ease both;
+}
+
+.badge-achievement-title {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--lamp-gold);
+    margin: 8px 0 4px;
+    opacity: 0.7;
+}
+
+.badge-achievement-name {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+}
+
+.badge-achievement-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    opacity: 0.6;
+}
+
+/* === TABLET (max-width: 768px) === */
+    /* Header */
+    .navbar { padding: 10px 14px; }
+    .nav-logo { font-size: 16px; letter-spacing: 2px; }
+    .nav-state { font-size: 9px; padding: 6px 12px; }
+
+    /* Controls - hidden on touch devices */
+    #controls-summary { display: none; }
+
+    /* Breadcrumb */
+    #scene-breadcrumb {
+        font-size: 8px;
+        padding: 6px 14px;
+        top: 54px;
+    }
+
+    /* Planet Selector */
+    #planet-selector {
+        padding: 8px 10px;
+        bottom: 16px;
+    }
+    .ps-item { min-width: 40px; padding: 6px 6px; }
+    .ps-color { width: 14px; height: 14px; }
+    .ps-name { font-size: 6px; }
+    .ps-header { font-size: 7px; }
+
+}
+@media (max-width: 480px) {
+    /* Header - compact */
+    .navbar {
+        padding: 8px 10px;
+        flex-wrap: nowrap;
+    }
+    .nav-logo {
+        font-size: 13px;
+        letter-spacing: 1.5px;
+    }
+    .nav-state {
+        font-size: 8px;
+        padding: 5px 10px;
+        border-radius: 14px;
+    }
+    .nav-state-dot { width: 6px; height: 6px; }
+
+    /* Breadcrumb */
+    #scene-breadcrumb {
+        font-size: 7px;
+        padding: 5px 10px;
+        top: 46px;
+        gap: 4px;
+    }
+
+    /* Info Panel - bottom sheet on mobile */
+    /* Planet Selector - compact */
+    #planet-selector {
+        padding: 6px 8px;
+        bottom: 10px;
+        border-radius: 12px;
+        max-width: 95vw;
+        overflow-x: auto;
+    }
+    .ps-list { gap: 2px; }
+    .ps-item {
+        min-width: 32px;
+        padding: 4px 4px;
+        gap: 3px;
+        border-radius: 8px;
+    }
+    .ps-color { width: 12px; height: 12px; }
+    .ps-name { font-size: 5px; letter-spacing: 0.5px; }
+    .ps-header { font-size: 6px; margin-bottom: 6px; }
+
+    /* Transition overlay */
+    #transition-overlay {
+        background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 80%);
+    }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+    .navbar { padding: 6px 10px; }
+    .nav-logo { font-size: 12px; }
+    #scene-breadcrumb { top: 40px; font-size: 7px; }
+    #info-panel {
+    #planet-selector { bottom: 6px; }
+    .ps-item { min-width: 28px; padding: 3px; }
+    #apod-widget { display: none; }
+}
+@media (max-width: 768px) {
+    .navbar { padding: 8px 14px; }
+    .nav-logo { font-size: 14px; letter-spacing: 2px; }
+    .nav-state { font-size: 8px; padding: 5px 10px; }
+
+    .nav-adventure-btn {
+        font-size: 9px;
+        padding: 8px 16px;
+        letter-spacing: 1.5px;
+    }
+    .nav-adventure-icon { font-size: 14px; }
+
+    .nav-badges, .nav-profile { padding: 6px 10px; font-size: 9px; }
+
+    #scene-breadcrumb { top: 52px; font-size: 9px; padding: 5px 14px; }
+    #controls-summary { display: none; }
+
+    #fps-monitor { width: 100px; bottom: 12px; right: 12px; padding: 6px; }
+    .fps-value { font-size: 16px; }
+}
+
+@media (max-width: 480px) {
+    .navbar { padding: 6px 10px; }
+    .nav-logo { font-size: 12px; }
+    .nav-state { display: none; }
+
+    .nav-adventure-btn {
+        font-size: 7px;
+        padding: 6px 12px;
+        letter-spacing: 1px;
+        border-radius: 16px;
+    }
+    .nav-adventure-text { display: none; }
+    .nav-adventure-icon { font-size: 18px; }
+
+    .nav-badges-count { display: none; }
+    .nav-profile { display: none; }
+
+    #scene-breadcrumb { top: 44px; font-size: 8px; }
+
+    #fps-monitor { width: 90px; bottom: 8px; right: 8px; padding: 5px; border-radius: 8px; }
+    .fps-value { font-size: 14px; }
+    .fps-label { font-size: 6px; }
+    .fps-chart-container { height: 20px; }
+
+    .badge-achievement { width: 260px; right: 10px; top: 60px; }
+}

@@ -1,0 +1,66 @@
+/* ============================================
+   T.A.R.D.I.S. â€” SOLAR SYSTEM THEME (8K)
+   Time And Relative Dimension In Space
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap');
+
+/* --- RESET & GLOBAL --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    /* --- T.A.R.D.I.S. Palette --- */
+    --tardis-blue: #003B6F;
+    --tardis-blue-dim: rgba(0, 59, 111, 0.35);
+    --tardis-glow: rgba(0, 149, 255, 0.25);
+    --tardis-bright: #0095FF;
+    --vortex: #7B2FBE;
+    --vortex-light: #A855F7;
+    --lamp-gold: #FFD700;
+    --bg-deep: #020510;
+    --bg-panel: rgba(2, 5, 16, 0.94);
+    --text-primary: #e0e8f5;
+    --text-secondary: #7a8db5;
+    --font-display: 'Orbitron', monospace;
+    --font-body: 'Inter', 'Segoe UI', sans-serif;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: var(--bg-deep);
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    /* Mobile: prevent pull-to-refresh, overscroll bounce, and browser zoom */
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* --- CANVAS --- */
+#output_canvas {
+    position: absolute; top: 0; left: 0;
+    z-index: 1; pointer-events: none;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#ui-layer {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 3; pointer-events: none;
+}
+/* --- PLANET HIGHLIGHT GLOW --- */
+@keyframes planetGlow {
+    0%, 100% { box-shadow: 0 0 20px var(--tardis-glow); }
+    50% { box-shadow: 0 0 40px var(--tardis-bright), 0 0 60px var(--tardis-glow); }
+}
+
+/* --- SCROLLBAR GLOBAL --- */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--tardis-blue-dim); border-radius: 4px; }
