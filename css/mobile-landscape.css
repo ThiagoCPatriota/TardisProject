@@ -124,8 +124,15 @@ body {
 }
 
 @keyframes tardisRotateHint {
-  0%, 100% { transform: rotate(-8deg) scale(1); }
-  50% { transform: rotate(8deg) scale(1.04); }
+
+  0%,
+  100% {
+    transform: rotate(-8deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(8deg) scale(1.04);
+  }
 }
 
 /* Mostra o aviso em celular/tablet pequeno na vertical. */
@@ -144,6 +151,7 @@ body {
    Mobile Landscape Core HUD
    ========================== */
 @media (pointer: coarse) and (max-width: 950px) and (orientation: landscape) {
+
   html,
   body {
     position: fixed;
@@ -621,7 +629,7 @@ body {
   }
 
   .nav-adventure-text {
-    display: none;
+    flex-shrink: 0
   }
 
   #info-panel {
@@ -736,6 +744,7 @@ body {
 
 /* Preference safety: less animation for users who request reduced motion. */
 @media (prefers-reduced-motion: reduce) {
+
   .orientation-icon,
   .nav-adventure-icon,
   .nav-adventure-glow,
