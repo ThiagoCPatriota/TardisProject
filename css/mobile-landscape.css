@@ -1310,3 +1310,171 @@ body {
     white-space: nowrap !important;
   }
 }
+
+/* ==========================================================
+   Hotfix v5 — acabamento mobile landscape
+   - Mais respiro entre progresso, pergunta e alternativas.
+   - Restaura botões compactos de conquistas/perfil na navbar.
+   - Mantém o botão de aventura legível sem esmagar a navegação.
+   ========================================================== */
+@media (pointer: coarse) and (max-width: 950px) and (orientation: landscape) {
+  .quiz-container {
+    gap: 10px 10px !important;
+  }
+
+  .quiz-status-bar {
+    min-height: 36px !important;
+    padding: 4px 0 8px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .quiz-progress-planets {
+    top: 15px !important;
+  }
+
+  .quiz-bottom-section {
+    padding-top: 4px !important;
+    gap: 9px !important;
+  }
+
+  .quiz-question-area {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .quiz-question-text {
+    margin: 0 !important;
+  }
+
+  .quiz-options {
+    margin-top: 0 !important;
+    gap: 8px !important;
+  }
+
+  .nav-right {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+  }
+
+  .nav-badges,
+  .nav-profile {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+  }
+
+  .nav-badges-count {
+    display: none !important;
+  }
+
+  .nav-badges-icon,
+  .nav-profile-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    font-size: 14px !important;
+  }
+
+  .nav-adventure-btn,
+  #guided-tour-btn {
+    flex: 0 0 auto !important;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 760px) and (max-height: 390px) and (orientation: landscape) {
+  .quiz-container {
+    gap: 7px 8px !important;
+  }
+
+  .quiz-status-bar {
+    min-height: 30px !important;
+    padding: 2px 0 6px !important;
+    margin-bottom: 1px !important;
+  }
+
+  .quiz-progress-planets {
+    top: 12px !important;
+  }
+
+  .quiz-bottom-section {
+    padding-top: 3px !important;
+    gap: 7px !important;
+  }
+
+  .quiz-question-area {
+    gap: 7px !important;
+  }
+
+  .quiz-options {
+    gap: 6px !important;
+  }
+
+  .nav-right {
+    display: flex !important;
+    gap: 4px !important;
+  }
+
+  .nav-badges,
+  .nav-profile {
+    display: inline-flex !important;
+    width: 27px !important;
+    height: 27px !important;
+    min-width: 27px !important;
+    min-height: 27px !important;
+    border-radius: 11px !important;
+  }
+
+  .nav-badges-icon,
+  .nav-profile-icon {
+    width: 15px !important;
+    height: 15px !important;
+    min-width: 15px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 680px) and (max-height: 390px) and (orientation: landscape) {
+  .nav-right {
+    gap: 3px !important;
+  }
+
+  .nav-badges,
+  .nav-profile {
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+    min-height: 25px !important;
+  }
+
+  .nav-badges-icon,
+  .nav-profile-icon {
+    font-size: 11px !important;
+  }
+
+  .nav-adventure-btn,
+  #guided-tour-btn {
+    min-width: 92px !important;
+    max-width: 98px !important;
+  }
+
+  #scene-breadcrumb {
+    min-width: 68px !important;
+    max-width: 24vw !important;
+  }
+}
