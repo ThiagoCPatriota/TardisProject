@@ -1065,3 +1065,248 @@ body {
     letter-spacing: 0.45px;
   }
 }
+
+/* ==========================================================
+   Hotfix v4 — Modo Aventura em mobile landscape
+   Mantém o planeta e o Doctor visíveis, mas transforma o quiz
+   em uma área lateral rolável para o botão "Próximo" nunca
+   ficar preso fora da tela após uma resposta correta.
+   ========================================================== */
+@media (pointer: coarse) and (max-width: 950px) and (orientation: landscape) {
+  .quiz-overlay {
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .quiz-container {
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    height: var(--app-height) !important;
+    display: grid !important;
+    grid-template-columns: minmax(180px, 38vw) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "quiz-header quiz-header"
+      "quiz-status quiz-status"
+      "quiz-viewer quiz-bottom";
+    gap: 6px 10px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .quiz-top-header {
+    grid-area: quiz-header;
+    min-height: 52px !important;
+    max-height: 74px !important;
+    align-items: center !important;
+  }
+
+  .quiz-status-bar {
+    grid-area: quiz-status;
+    min-height: 28px;
+    padding: 2px 0 4px !important;
+  }
+
+  .quiz-planet-viewer {
+    grid-area: quiz-viewer;
+    min-height: 0 !important;
+    height: 100% !important;
+    align-self: stretch !important;
+  }
+
+  .quiz-bottom-section {
+    grid-area: quiz-bottom;
+    min-height: 0 !important;
+    height: 100% !important;
+    padding: 0 2px 4px 0 !important;
+    gap: 6px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .quiz-question-area {
+    flex: 0 0 auto;
+  }
+
+  .quiz-question-text {
+    font-size: clamp(9.5px, 2.45vw, 12px) !important;
+    line-height: 1.28 !important;
+  }
+
+  .quiz-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .quiz-option {
+    min-height: 34px !important;
+    padding: 7px 8px !important;
+    font-size: clamp(9px, 2.15vw, 10.5px) !important;
+    line-height: 1.2 !important;
+  }
+
+  .quiz-hint,
+  .quiz-feedback {
+    flex: 0 0 auto;
+    padding: 6px 9px !important;
+    font-size: clamp(8.8px, 2vw, 10px) !important;
+    line-height: 1.25 !important;
+  }
+
+  .quiz-action-btn {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 6 !important;
+    flex: 0 0 auto;
+    min-height: 40px !important;
+    margin-top: 2px !important;
+    padding: 9px 12px !important;
+    font-size: clamp(8.4px, 2.15vw, 10px) !important;
+    letter-spacing: 1px !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    text-wrap: balance;
+    box-shadow:
+      0 -10px 20px rgba(2, 6, 18, 0.78),
+      0 6px 24px rgba(123, 47, 190, 0.38) !important;
+  }
+
+  .quiz-container.quiz-has-answer .quiz-action-btn,
+  .quiz-overlay.quiz-has-answer .quiz-action-btn {
+    display: block !important;
+  }
+
+  .quiz-container.quiz-has-answer .quiz-bottom-section,
+  .quiz-overlay.quiz-has-answer .quiz-bottom-section {
+    padding-bottom: max(6px, var(--safe-bottom)) !important;
+  }
+}
+
+/* Celulares horizontais muito baixos: compacta o quiz sem esconder planeta/Doctor. */
+@media (pointer: coarse) and (max-width: 760px) and (max-height: 390px) and (orientation: landscape) {
+  .quiz-container {
+    grid-template-columns: minmax(132px, 34vw) minmax(0, 1fr) !important;
+    gap: 4px 8px !important;
+    padding: max(4px, var(--safe-top)) max(7px, var(--safe-right)) max(5px, var(--safe-bottom)) max(7px, var(--safe-left)) !important;
+  }
+
+  .quiz-top-header {
+    min-height: 46px !important;
+    max-height: 58px !important;
+  }
+
+  .quiz-doctor-block {
+    width: 44px !important;
+  }
+
+  .quiz-doctor-sprite {
+    width: 42px !important;
+    max-height: 54px !important;
+  }
+
+  .quiz-speech-bubble {
+    min-height: 34px !important;
+    padding: 6px 8px !important;
+  }
+
+  .quiz-speech-text {
+    font-size: 8.9px !important;
+    line-height: 1.25 !important;
+  }
+
+  .quiz-status-bar {
+    min-height: 24px !important;
+    gap: 6px !important;
+    padding: 0 0 2px !important;
+  }
+
+  .quiz-score-display,
+  .quiz-step-display {
+    padding: 4px 6px !important;
+  }
+
+  .quiz-score-label,
+  .quiz-step-label {
+    display: none !important;
+  }
+
+  .quiz-score-value {
+    font-size: 14px !important;
+  }
+
+  .quiz-step-value {
+    font-size: 10px !important;
+  }
+
+  .quiz-close {
+    width: 27px !important;
+    height: 27px !important;
+  }
+
+  .quiz-viewer-hint {
+    display: none !important;
+  }
+
+  .quiz-planet-viewer {
+    min-height: 0 !important;
+  }
+
+  .quiz-planet-overlay-badge {
+    top: 6px !important;
+    left: 6px !important;
+    padding: 4px 7px !important;
+  }
+
+  .quiz-question-text {
+    font-size: 9.2px !important;
+  }
+
+  .quiz-options {
+    gap: 5px !important;
+  }
+
+  .quiz-option {
+    min-height: 30px !important;
+    padding: 5px 6px !important;
+    font-size: 8.7px !important;
+  }
+
+  .quiz-container.quiz-has-answer .quiz-hint,
+  .quiz-overlay.quiz-has-answer .quiz-hint {
+    display: none !important;
+  }
+
+  .quiz-feedback {
+    padding: 5px 8px !important;
+    font-size: 8.6px !important;
+  }
+
+  .quiz-action-btn {
+    min-height: 36px !important;
+    padding: 7px 10px !important;
+    font-size: 8.2px !important;
+    letter-spacing: 0.7px !important;
+  }
+}
+
+/* Hotfix v4 — botão principal da navbar: texto sempre dentro do botão. */
+@media (pointer: coarse) and (max-width: 950px) and (orientation: landscape) {
+  .nav-adventure-btn,
+  #guided-tour-btn {
+    max-width: min(178px, 43vw) !important;
+    overflow: hidden !important;
+  }
+
+  .nav-adventure-text {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}

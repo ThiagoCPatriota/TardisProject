@@ -370,6 +370,12 @@ const showStep = (stepIndex) => {
     currentStep = stepIndex;
     hasAnswered = false;
 
+    // Mobile landscape: ao trocar de pergunta, remove o estado de resposta
+    // para a área inferior voltar ao layout normal.
+    const quizContainer = document.querySelector('.quiz-container');
+    quizContainer?.classList.remove('quiz-has-answer', 'quiz-completed');
+    overlay?.classList.remove('quiz-has-answer', 'quiz-completed');
+
     const q = questions[stepIndex];
     const planetIndex = PLANETS_DATA.findIndex(p => p.nameEN === q.planetNameEN);
 
@@ -466,6 +472,15 @@ const checkAnswer = (selectedIndex) => {
             ? '🏆 VER RESULTADO'
             : `PRÓXIMO: ${questions[currentStep + 1]?.planetName || 'RESULTADO'} →`;
         actionBtn.style.display = 'block';
+
+        // Mobile landscape: garante que o botão de avanço fique acessível
+        // mesmo quando a altura da tela for pequena.
+        const quizContainer = document.querySelector('.quiz-container');
+        quizContainer?.classList.add('quiz-has-answer');
+        overlay?.classList.add('quiz-has-answer');
+        requestAnimationFrame(() => {
+            actionBtn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+        });
 
     } else {
         // WRONG
@@ -570,6 +585,13 @@ const showCompletion = () => {
     actionBtn.textContent = '🌟 ENCERRAR AVENTURA';
     actionBtn.style.display = 'block';
     actionBtn.onclick = () => endTour();
+
+    const quizContainer = document.querySelector('.quiz-container');
+    quizContainer?.classList.add('quiz-has-answer', 'quiz-completed');
+    overlay?.classList.add('quiz-has-answer', 'quiz-completed');
+    requestAnimationFrame(() => {
+        actionBtn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    });
 
     updateProgress(totalSteps - 1);
 };
