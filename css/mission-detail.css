@@ -344,3 +344,26 @@
         font-size: 11px;
     }
 }
+
+/* v18 — Scroll confortável dentro do dossiê, sem acionar zoom/rotação da cena */
+#mission-detail-modal,
+#mission-detail-modal * {
+    overscroll-behavior: contain;
+}
+
+.mdm-container {
+    touch-action: pan-y;
+}
+
+.mdm-body {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    scrollbar-gutter: stable;
+}
+
+@media (pointer: coarse) {
+    .mdm-body {
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+}
