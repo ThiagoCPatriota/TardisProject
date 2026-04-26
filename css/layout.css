@@ -726,3 +726,137 @@
 
     .badge-achievement { width: 260px; right: 10px; top: 60px; }
 }
+
+/* === NAV ACTION BUTTONS — Ranking / Conquistas / Perfil === */
+.nav-action-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 9px 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(125, 211, 252, 0.16);
+    background: linear-gradient(135deg, rgba(6, 26, 64, 0.86), rgba(15, 23, 42, 0.72));
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1.15px;
+    text-transform: uppercase;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+    cursor: pointer;
+    transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    white-space: nowrap;
+}
+
+.nav-action-btn:hover,
+.nav-action-btn:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.42);
+    background: linear-gradient(135deg, rgba(8, 47, 103, 0.9), rgba(88, 28, 135, 0.36));
+    box-shadow: 0 12px 30px rgba(14, 165, 233, 0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+    outline: none;
+}
+
+.nav-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.18));
+}
+
+.nav-action-text,
+.nav-auth-label {
+    display: inline-block;
+    line-height: 1;
+}
+
+.nav-ranking {
+    border-color: rgba(250, 204, 21, 0.22);
+}
+
+.nav-ranking:hover,
+.nav-ranking:focus-visible {
+    border-color: rgba(250, 204, 21, 0.48);
+    box-shadow: 0 12px 30px rgba(250, 204, 21, 0.14), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.nav-ranking-soon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 6px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.12);
+    color: #fde68a;
+    font-size: 7px;
+    letter-spacing: 0.7px;
+}
+
+.nav-badges {
+    border-color: rgba(168, 85, 247, 0.24);
+}
+
+.nav-badges-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.12);
+    color: var(--lamp-gold);
+    font-size: 10px;
+    font-weight: 900;
+    text-align: center;
+}
+
+.nav-profile.auth-logged-in {
+    border-color: rgba(34, 197, 94, 0.42);
+    background: linear-gradient(135deg, rgba(22, 101, 52, 0.28), rgba(15, 23, 42, 0.78));
+}
+
+.nav-auth-label {
+    margin-left: 0;
+    max-width: 122px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.nav-profile.auth-logged-in .nav-auth-label {
+    color: #bbf7d0;
+}
+
+.ranking-coming-soon-toast {
+    position: fixed;
+    right: max(22px, env(safe-area-inset-right, 0px));
+    top: max(78px, calc(env(safe-area-inset-top, 0px) + 70px));
+    z-index: 260;
+    max-width: min(380px, calc(100vw - 32px));
+    padding: 14px 16px;
+    border: 1px solid rgba(250, 204, 21, 0.26);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(49, 46, 129, 0.92));
+    color: #fef3c7;
+    font-size: 13px;
+    line-height: 1.45;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.35), 0 0 28px rgba(250, 204, 21, 0.12);
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.ranking-coming-soon-toast.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}

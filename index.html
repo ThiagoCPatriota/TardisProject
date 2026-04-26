@@ -69,16 +69,25 @@
       </div>
 
       <div class="nav-right">
-        <!-- Badges Placeholder -->
-        <div class="nav-badges" id="nav-badges" title="Insígnias conquistadas">
-          <span class="nav-badges-icon">🏅</span>
+        <!-- Ranking Placeholder -->
+        <button class="nav-action-btn nav-ranking" id="nav-ranking" type="button" title="Ranking dos exploradores em breve">
+          <span class="nav-action-icon nav-ranking-icon">🏆</span>
+          <span class="nav-action-text">Ranking</span>
+          <span class="nav-action-badge nav-ranking-soon">Em breve</span>
+        </button>
+
+        <!-- Achievements -->
+        <button class="nav-action-btn nav-badges" id="nav-badges" type="button" title="Ver conquistas">
+          <span class="nav-action-icon nav-badges-icon">🏅</span>
+          <span class="nav-action-text">Conquistas</span>
           <span class="nav-badges-count" id="badges-count">0</span>
-        </div>
-        <!-- Profile Placeholder -->
-        <div class="nav-profile" id="nav-profile" title="Entrar ou criar conta">
-          <span class="nav-profile-icon">👤</span>
-          <span class="nav-auth-label">Login</span>
-        </div>
+        </button>
+
+        <!-- Profile -->
+        <button class="nav-action-btn nav-profile" id="nav-profile" type="button" title="Entrar ou criar conta">
+          <span class="nav-action-icon nav-profile-icon">👤</span>
+          <span class="nav-auth-label">Perfil</span>
+        </button>
       </div>
     </nav>
 
@@ -212,6 +221,7 @@
 
   <script type="module" src="js/mobileViewport.js"></script>
   <script type="module" src="js/auth/authModal.js"></script>
+  <script type="module" src="js/ui/rankingButton.js"></script>
   <script type="module" src="js/achievements/achievementsPage.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>

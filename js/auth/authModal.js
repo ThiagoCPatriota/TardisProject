@@ -7,6 +7,7 @@ import {
     signUpWithEmail,
     signInWithEmail,
     signOut,
+    resendSignupConfirmation,
     getCurrentSession,
     onAuthStateChange
 } from './authService.js';
@@ -39,6 +40,35 @@ const SELECTORS = {
 
 const cleanExplorerName = (name = '') => name.trim().replace(/\s+/g, ' ');
 
+const normalizeEmail = (email = '') => email.trim().toLowerCase();
+
+const getAuthFriendlyMessage = (error, context = {}) => {
+    const rawMessage = error?.message || 'Não foi possível concluir a autenticação.';
+    const message = rawMessage.toLowerCase();
+
+    if (message.includes('email not confirmed')) {
+        return 'Esse e-mail ainda precisa ser confirmado antes do login. Confirme pelo link enviado ou, para MVP/teste, desative Confirm email no Supabase e recrie/confirme esse usuário.';
+    }
+
+    if (message.includes('invalid login credentials')) {
+        return 'E-mail ou senha incorretos. Confira os dados e tente novamente.';
+    }
+
+    if (message.includes('rate limit') || message.includes('too many requests')) {
+        return 'Muitas tentativas seguidas. Aguarde um pouco antes de tentar novamente.';
+    }
+
+    if (message.includes('user already registered') || message.includes('already registered') || message.includes('already exists')) {
+        return 'Essa conta já existe. Use a aba Login para entrar com esse e-mail e senha.';
+    }
+
+    if (message.includes('password')) {
+        return 'A senha não foi aceita. Use pelo menos 8 caracteres e tente novamente.';
+    }
+
+    return context.fallback || rawMessage;
+};
+
 const getEmailPreview = (email) => {
     if (!email) return 'Perfil';
     const [name] = email.split('@');
@@ -64,12 +94,17 @@ const setMessage = (text, type = 'warning') => {
     if (!messageBox) return;
     messageBox.textContent = text;
     messageBox.className = `auth-message active ${type}`;
+
+    const resendButton = modal?.querySelector('#auth-resend-confirmation');
+    const shouldShowResend = type === 'error' && text.toLowerCase().includes('confirm');
+    resendButton?.classList.toggle('auth-hidden', !shouldShowResend);
 };
 
 const clearMessage = () => {
     if (!messageBox) return;
     messageBox.textContent = '';
     messageBox.className = 'auth-message';
+    modal?.querySelector('#auth-resend-confirmation')?.classList.add('auth-hidden');
 };
 
 const setLoading = (isLoading) => {
@@ -203,7 +238,7 @@ const setMode = async (nextMode) => {
 
 const validateForm = () => {
     const explorerName = cleanExplorerName(modal.querySelector(SELECTORS.explorerName)?.value || '');
-    const email = modal.querySelector(SELECTORS.email)?.value.trim();
+    const email = normalizeEmail(modal.querySelector(SELECTORS.email)?.value || '');
     const password = modal.querySelector(SELECTORS.password)?.value || '';
     const confirm = modal.querySelector(SELECTORS.confirm)?.value || '';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -257,7 +292,7 @@ const updateNavSession = (session) => {
     navProfile.setAttribute('aria-label', user ? `Perfil do explorador ${displayName}` : 'Entrar ou criar conta');
 
     if (navProfileIcon) navProfileIcon.textContent = user ? '🧑‍🚀' : '👤';
-    if (navAuthLabel) navAuthLabel.textContent = user ? displayName : 'Login';
+    if (navAuthLabel) navAuthLabel.textContent = user ? displayName : 'Perfil';
 };
 
 const showAccountView = (session) => {
@@ -334,13 +369,17 @@ const handleSubmit = async (event) => {
 
         updateNavSession(session);
         showAccountView(session);
-        setMessage(mode === 'signup' ? 'Conta de explorador criada com sucesso!' : 'Login realizado com sucesso!', 'success');
+        const successMessage = data?.existingAccount
+            ? 'Essa conta já existia. Entramos com ela usando seu e-mail e senha.'
+            : (mode === 'signup' ? 'Conta de explorador criada com sucesso!' : 'Login realizado com sucesso!');
+
+        setMessage(successMessage, 'success');
 
         window.dispatchEvent(new CustomEvent('tardis:auth-success', {
             detail: { session, mode }
         }));
     } catch (error) {
-        setMessage(error.message || 'Não foi possível concluir a autenticação.', 'error');
+        setMessage(getAuthFriendlyMessage(error), 'error');
         await resetCaptcha();
     } finally {
         setLoading(false);
@@ -417,6 +456,7 @@ const createModal = () => {
                 </div>
 
                 <div class="auth-message" id="auth-message"></div>
+                <button class="auth-resend-confirmation auth-hidden" id="auth-resend-confirmation" type="button">REENVIAR CONFIRMAÇÃO</button>
             </div>
         </section>
     `;
@@ -448,6 +488,22 @@ const createModal = () => {
             setMessage(error.message || 'Não foi possível sair da conta.', 'error');
         }
     });
+    modal.querySelector('#auth-resend-confirmation')?.addEventListener('click', async () => {
+        const email = normalizeEmail(modal.querySelector(SELECTORS.email)?.value || '');
+
+        if (!email) {
+            setMessage('Digite o e-mail da conta para reenviar a confirmação.', 'error');
+            return;
+        }
+
+        try {
+            setMessage('Enviando novo link de confirmação...', 'warning');
+            await resendSignupConfirmation({ email });
+            setMessage('Enviamos um novo link de confirmação. Verifique sua caixa de entrada e spam.', 'success');
+        } catch (error) {
+            setMessage(getAuthFriendlyMessage(error, { fallback: 'Não foi possível reenviar a confirmação agora.' }), 'error');
+        }
+    });
     form?.addEventListener('submit', handleSubmit);
 
     document.addEventListener('keydown', (event) => {
@@ -468,7 +524,7 @@ const setupNavButton = () => {
     if (!navProfile.querySelector('.nav-auth-label')) {
         const label = document.createElement('span');
         label.className = 'nav-auth-label';
-        label.textContent = 'Login';
+        label.textContent = 'Perfil';
         navProfile.appendChild(label);
     }
 
