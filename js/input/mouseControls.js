@@ -24,7 +24,7 @@ export const setMouseCallbacks = (cbs) => {
 };
 
 // UI elements that should not trigger 3D interaction
-const UI_SELECTORS = '#info-panel, #planet-detail-modal, #apod-widget, #planet-selector, #guided-tour-panel, #fps-monitor, #controls-summary, #achievements-page, #auth-modal, button, .pdm-close';
+const UI_SELECTORS = '#info-panel, #planet-detail-modal, #apod-widget, #planet-selector, #guided-tour-panel, #fps-monitor, #controls-summary, #achievements-page, #auth-modal, #mission-detail-modal, button, .pdm-close, .mdm-close';
 
 export const initMouseControls = () => {
     const canvas = document.getElementById('output_canvas');
@@ -78,7 +78,7 @@ export const initMouseControls = () => {
 
     // --- SCROLL TO ZOOM ---
     window.addEventListener('wheel', (e) => {
-        if (e.target.closest('#info-panel, #planet-detail-modal, #apod-widget, .pdm-body, .info-desc, #guided-tour-panel, #achievements-page, #auth-modal')) return;
+        if (e.target.closest('#info-panel, #planet-detail-modal, #mission-detail-modal, #apod-widget, .pdm-body, .mdm-body, .info-desc, #guided-tour-panel, #achievements-page, #auth-modal')) return;
 
         e.preventDefault();
 

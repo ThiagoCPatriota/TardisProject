@@ -55,7 +55,7 @@ function getPinchCenter(touches) {
 function isUIElement(target) {
     return target.closest(
         '#controls-summary, #info-panel, #planet-detail-modal, ' +
-        '#apod-widget, #planet-selector, #achievements-page, #auth-modal, button, .pdm-close, .pdm-body'
+        '#apod-widget, #planet-selector, #achievements-page, #auth-modal, #mission-detail-modal, button, .pdm-close, .mdm-close, .pdm-body, .mdm-body'
     );
 }
 

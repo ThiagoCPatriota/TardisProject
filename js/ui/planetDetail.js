@@ -84,6 +84,11 @@ function createMissionDetailModal() {
         }
     });
 
+    // Garante que scroll/toque dentro do dossiê não seja capturado pelos controles 3D.
+    const scrollBody = modal.querySelector('.mdm-body');
+    scrollBody?.addEventListener('wheel', (event) => event.stopPropagation(), { passive: true });
+    scrollBody?.addEventListener('touchmove', (event) => event.stopPropagation(), { passive: true });
+
     document.body.appendChild(modal);
     return modal;
 }

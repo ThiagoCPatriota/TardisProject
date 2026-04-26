@@ -14,6 +14,12 @@ import { showPlanetInfo, hideInfoPanel } from './infoPanel.js';
 import { highlightPlanetSelector, hidePlanetSelector, showPlanetSelector } from './planetSelector.js';
 import { PLANET_ICONS } from './questionGenerator.js';
 import {
+    pickGeneralDoctorLine,
+    pickCorrectDoctorLine,
+    pickWrongDoctorLine,
+    pickPlanetDoctorLine
+} from '../data/doctorDialogue.js';
+import {
     addCorrectPoints,
     applyWrongPenalty,
     formatAdventureScore,
@@ -58,26 +64,8 @@ const BADGE_DEFINITIONS = [
 ];
 
 // --- DOCTOR DIALOGUE ---
-const DOCTOR_INTRO = 'Olá! Eu sou o Doutor. Pronto para explorar os segredos do tempo e do espaço comigo?';
-
-const DOCTOR_CORRECT = [
-    p => `Fantástico! Você realmente conhece ${p}! Allons-y!`,
-    p => `Brilhante! Sabia que você acertaria sobre ${p}!`,
-    p => `Magnífico! O conhecimento sobre ${p} é forte em você!`,
-    p => `Geronimo! Resposta perfeita sobre ${p}! Próxima parada!`
-];
-
-const DOCTOR_WRONG = [
-    h => `Hmm, não é essa. ${h}`,
-    h => `Quase! Tente de novo. ${h}`,
-    h => `Não exatamente... Uma dica: ${h}`
-];
-
-const DOCTOR_PLANET_INTRO = [
-    (p, fact) => `Agora estamos em ${p}! ${fact} Pronto para o desafio?`,
-    (p, fact) => `${p}... fascinante! ${fact} Vamos testar?`,
-    (p, fact) => `Ah, ${p}! ${fact} Responda com sabedoria!`
-];
+// As falas agora ficam em js/data/doctorDialogue.js para facilitar expansão.
+// Aqui mantemos apenas a integração do Modo Aventura com esse banco de frases.
 
 // --- PUBLIC API ---
 export const initGuidedTour = (callbacks) => {
@@ -339,7 +327,7 @@ const startTour = async () => {
 
     // Doctor intro with typewriter
     const speechText = document.getElementById('quiz-speech-text');
-    typewriterEffect(speechText, DOCTOR_INTRO, 30, () => {
+    typewriterEffect(speechText, pickGeneralDoctorLine(), 30, () => {
         setTimeout(() => showStep(currentStep), 500);
     });
 };
@@ -419,8 +407,7 @@ const showStep = (stepIndex) => {
     const speechText = document.getElementById('quiz-speech-text');
     const details = PLANET_DETAILS_DATA[q.planetNameEN];
     const fact = details?.curiosities?.[0]?.text?.substring(0, 100) || `Um lugar fascinante!`;
-    const introFn = DOCTOR_PLANET_INTRO[Math.floor(Math.random() * DOCTOR_PLANET_INTRO.length)];
-    typewriterEffect(speechText, introFn(q.planetName, fact + '...'), 22);
+    typewriterEffect(speechText, pickPlanetDoctorLine(q.planetNameEN, q.planetName, fact + '...'), 22);
 
     // Question
     document.getElementById('quiz-question-text').textContent = q.question;
@@ -469,8 +456,7 @@ const checkAnswer = (selectedIndex) => {
         feedbackEl.className = 'quiz-feedback quiz-feedback-correct';
         feedbackEl.innerHTML = '✅ <strong>CORRETO!</strong> +10 pontos';
 
-        const line = DOCTOR_CORRECT[Math.floor(Math.random() * DOCTOR_CORRECT.length)];
-        typewriterEffect(speechText, line(q.planetName), 22);
+        typewriterEffect(speechText, pickCorrectDoctorLine(q.planetName), 22);
 
         optionBtns.forEach((btn, i) => {
             btn.disabled = true;
@@ -512,8 +498,7 @@ const checkAnswer = (selectedIndex) => {
         feedbackEl.className = 'quiz-feedback quiz-feedback-wrong';
         feedbackEl.innerHTML = `❌ <strong>Tente novamente!</strong> -${formatPenalty()} pontos`;
 
-        const line = DOCTOR_WRONG[Math.floor(Math.random() * DOCTOR_WRONG.length)];
-        typewriterEffect(speechText, line(q.hint), 22);
+        typewriterEffect(speechText, pickWrongDoctorLine(q.hint), 22);
 
         optionBtns.forEach((btn) => {
             if (parseInt(btn.dataset.index) === selectedIndex) {
