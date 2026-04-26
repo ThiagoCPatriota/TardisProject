@@ -16,9 +16,11 @@ let modal = null;
 let form = null;
 let messageBox = null;
 let submitButton = null;
+let explorerField = null;
 let confirmField = null;
 let accountCard = null;
 let formWrapper = null;
+let accountExplorerName = null;
 let accountEmail = null;
 let navProfile = null;
 let navProfileIcon = null;
@@ -28,16 +30,34 @@ let captchaToken = null;
 let localChallengeAnswer = null;
 
 const SELECTORS = {
+    explorerName: '#auth-explorer-name',
     email: '#auth-email',
     password: '#auth-password',
     confirm: '#auth-confirm-password',
     localChallengeInput: '#auth-local-challenge-answer'
 };
 
+const cleanExplorerName = (name = '') => name.trim().replace(/\s+/g, ' ');
+
 const getEmailPreview = (email) => {
     if (!email) return 'Perfil';
     const [name] = email.split('@');
     return name?.slice(0, 16) || 'Perfil';
+};
+
+const getExplorerName = (user) => {
+    const metadata = user?.user_metadata || {};
+    return cleanExplorerName(
+        metadata.explorer_name ||
+        metadata.display_name ||
+        metadata.full_name ||
+        ''
+    );
+};
+
+const getDisplayName = (user) => {
+    const explorerName = getExplorerName(user);
+    return explorerName || getEmailPreview(user?.email || '');
 };
 
 const setMessage = (text, type = 'warning') => {
@@ -162,12 +182,18 @@ const setMode = async (nextMode) => {
 
     signupTab?.classList.toggle('active', mode === 'signup');
     loginTab?.classList.toggle('active', mode === 'login');
+    explorerField?.classList.toggle('auth-hidden', mode !== 'signup');
     confirmField?.classList.toggle('auth-hidden', mode !== 'signup');
+
+    const passwordInput = modal?.querySelector(SELECTORS.password);
+    if (passwordInput) {
+        passwordInput.autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
+    }
 
     if (title) title.textContent = mode === 'signup' ? 'Criar conta' : 'Entrar';
     if (subtitle) {
         subtitle.textContent = mode === 'signup'
-            ? 'Cadastre seu explorador com e-mail, senha e uma continha rápida.'
+            ? 'Escolha seu Nome de Explorador, e-mail, senha e resolva uma continha rápida.'
             : 'Entre com o e-mail e senha da sua conta T.A.R.D.I.S.';
     }
 
@@ -176,13 +202,23 @@ const setMode = async (nextMode) => {
 };
 
 const validateForm = () => {
+    const explorerName = cleanExplorerName(modal.querySelector(SELECTORS.explorerName)?.value || '');
     const email = modal.querySelector(SELECTORS.email)?.value.trim();
     const password = modal.querySelector(SELECTORS.password)?.value || '';
     const confirm = modal.querySelector(SELECTORS.confirm)?.value || '';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const explorerNameRegex = /^[\p{L}\p{N} _.-]+$/u;
 
     if (!isSupabaseConfigured()) {
         throw new Error('Supabase ainda não foi configurado. Abra js/auth/supabaseConfig.js e cole a Project URL e a anon public key.');
+    }
+
+    if (mode === 'signup') {
+        if (explorerName.length < 2) throw new Error('Escolha um Nome de Explorador com pelo menos 2 caracteres.');
+        if (explorerName.length > 18) throw new Error('O Nome de Explorador pode ter no máximo 18 caracteres.');
+        if (!explorerNameRegex.test(explorerName)) {
+            throw new Error('Use apenas letras, números, espaços, ponto, hífen ou underline no Nome de Explorador.');
+        }
     }
 
     if (!emailRegex.test(email)) throw new Error('Digite um e-mail válido.');
@@ -207,20 +243,21 @@ const validateForm = () => {
         throw new Error('Complete a verificação antes de entrar.');
     }
 
-    return { email, password };
+    return { email, password, explorerName };
 };
 
 const updateNavSession = (session) => {
     const user = session?.user || null;
-    const email = user?.email || '';
+    const displayName = user ? getDisplayName(user) : '';
 
     if (!navProfile) return;
 
     navProfile.classList.toggle('auth-logged-in', Boolean(user));
-    navProfile.title = user ? `Logado como ${email}` : 'Entrar ou criar conta';
+    navProfile.title = user ? `Explorador: ${displayName}` : 'Entrar ou criar conta';
+    navProfile.setAttribute('aria-label', user ? `Perfil do explorador ${displayName}` : 'Entrar ou criar conta');
 
     if (navProfileIcon) navProfileIcon.textContent = user ? '🧑‍🚀' : '👤';
-    if (navAuthLabel) navAuthLabel.textContent = user ? getEmailPreview(email) : 'Login';
+    if (navAuthLabel) navAuthLabel.textContent = user ? displayName : 'Login';
 };
 
 const showAccountView = (session) => {
@@ -228,6 +265,7 @@ const showAccountView = (session) => {
     formWrapper?.classList.toggle('auth-hidden', Boolean(user));
     accountCard?.classList.toggle('active', Boolean(user));
 
+    if (accountExplorerName) accountExplorerName.textContent = user ? getDisplayName(user) : '';
     if (accountEmail) accountEmail.textContent = user?.email || '';
 
     const title = modal?.querySelector('#auth-title');
@@ -235,7 +273,7 @@ const showAccountView = (session) => {
 
     if (user) {
         if (title) title.textContent = 'Perfil';
-        if (subtitle) subtitle.textContent = 'Sua sessão está ativa nesta aba.';
+        if (subtitle) subtitle.textContent = 'Sua sessão de explorador está ativa nesta aba.';
         clearMessage();
     } else {
         formWrapper?.classList.remove('auth-hidden');
@@ -253,7 +291,12 @@ const openModal = async () => {
 
     if (!session?.user) {
         await setMode(mode);
-        setTimeout(() => modal?.querySelector(SELECTORS.email)?.focus(), 60);
+        setTimeout(() => {
+            const focusTarget = mode === 'signup'
+                ? modal?.querySelector(SELECTORS.explorerName)
+                : modal?.querySelector(SELECTORS.email);
+            focusTarget?.focus();
+        }, 60);
     }
 };
 
@@ -267,11 +310,11 @@ const handleSubmit = async (event) => {
     clearMessage();
 
     try {
-        const { email, password } = validateForm();
+        const { email, password, explorerName } = validateForm();
         setLoading(true);
 
         const data = mode === 'signup'
-            ? await signUpWithEmail({ email, password, captchaToken })
+            ? await signUpWithEmail({ email, password, explorerName, captchaToken })
             : await signInWithEmail({ email, password, captchaToken });
 
         const session = data?.session || await getCurrentSession();
@@ -284,7 +327,7 @@ const handleSubmit = async (event) => {
 
         updateNavSession(session);
         showAccountView(session);
-        setMessage(mode === 'signup' ? 'Conta criada e login realizado com sucesso!' : 'Login realizado com sucesso!', 'success');
+        setMessage(mode === 'signup' ? 'Conta de explorador criada com sucesso!' : 'Login realizado com sucesso!', 'success');
     } catch (error) {
         setMessage(error.message || 'Não foi possível concluir a autenticação.', 'error');
         await resetCaptcha();
@@ -306,7 +349,7 @@ const createModal = () => {
                 <div>
                     <span class="auth-kicker">EXPLORADOR T.A.R.D.I.S.</span>
                     <h2 class="auth-title" id="auth-title">Criar conta</h2>
-                    <p class="auth-subtitle" id="auth-subtitle">Cadastre seu explorador com e-mail, senha e uma continha rápida.</p>
+                    <p class="auth-subtitle" id="auth-subtitle">Escolha seu Nome de Explorador, e-mail, senha e resolva uma continha rápida.</p>
                 </div>
                 <button class="auth-close" id="auth-close" type="button" aria-label="Fechar">✕</button>
             </header>
@@ -314,6 +357,7 @@ const createModal = () => {
             <div class="auth-body">
                 <div class="auth-account-card" id="auth-account-card">
                     <span class="auth-kicker">SESSÃO ATIVA</span>
+                    <div class="auth-account-name" id="auth-account-name"></div>
                     <div class="auth-account-email" id="auth-account-email"></div>
                     <button class="auth-logout" id="auth-logout" type="button">SAIR DA CONTA</button>
                 </div>
@@ -325,6 +369,11 @@ const createModal = () => {
                     </div>
 
                     <form class="auth-form" id="auth-form">
+                        <div class="auth-field" id="auth-explorer-field">
+                            <label for="auth-explorer-name">Nome de Explorador</label>
+                            <input id="auth-explorer-name" type="text" autocomplete="nickname" maxlength="18" placeholder="Ex: Astro Theo" required>
+                        </div>
+
                         <div class="auth-field">
                             <label for="auth-email">E-mail</label>
                             <input id="auth-email" type="email" autocomplete="email" placeholder="voce@email.com" required>
@@ -366,9 +415,11 @@ const createModal = () => {
     form = modal.querySelector('#auth-form');
     messageBox = modal.querySelector('#auth-message');
     submitButton = modal.querySelector('#auth-submit');
+    explorerField = modal.querySelector('#auth-explorer-field');
     confirmField = modal.querySelector('#auth-confirm-field');
     accountCard = modal.querySelector('#auth-account-card');
     formWrapper = modal.querySelector('#auth-form-wrapper');
+    accountExplorerName = modal.querySelector('#auth-account-name');
     accountEmail = modal.querySelector('#auth-account-email');
 
     modal.querySelector('#auth-close')?.addEventListener('click', closeModal);

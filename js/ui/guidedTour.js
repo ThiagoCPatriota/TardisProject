@@ -36,6 +36,10 @@ let overlay = null;
 let adventureBtn = null;
 let typewriterTimer = null;
 
+const emitAchievementEvent = (type, detail = {}) => {
+    window.dispatchEvent(new CustomEvent(`tardis:${type}`, { detail }));
+};
+
 // Lazy-loaded modules
 let planetViewer = null;
 let questionGenerator = null;
@@ -299,6 +303,7 @@ const startTour = async () => {
     }
 
     guidedModeActive = true;
+    emitAchievementEvent('adventure-started', { totalQuestions: totalSteps });
 
     // Update button
     if (adventureBtn) {
@@ -475,6 +480,13 @@ const checkAnswer = (selectedIndex) => {
         markProgressDot(currentStep, 'correct');
         progressHistory[currentStep] = 'correct';
         saveProgress();
+        emitAchievementEvent('question-answered', {
+            correct: true,
+            planetName: q.planetName,
+            planetNameEN: q.planetNameEN,
+            currentScore: score,
+            questionIndex: currentStep
+        });
 
         const actionBtn = document.getElementById('quiz-action-btn');
         actionBtn.textContent = currentStep >= totalSteps - 1
@@ -512,6 +524,13 @@ const checkAnswer = (selectedIndex) => {
 
         progressHistory[currentStep] = 'wrong';
         saveProgress();
+        emitAchievementEvent('question-answered', {
+            correct: false,
+            planetName: q.planetName,
+            planetNameEN: q.planetNameEN,
+            currentScore: score,
+            questionIndex: currentStep
+        });
     }
 };
 
@@ -546,6 +565,14 @@ const showCompletion = () => {
     const maxScore = getMaxAdventureScore(totalSteps);
     const pct = getAdventureScorePercent(score, totalSteps);
     const earned = BADGE_DEFINITIONS.filter(b => getBadgeScoreUnits(score) >= b.threshold);
+
+    emitAchievementEvent('adventure-completed', {
+        score,
+        maxScore,
+        percent: pct,
+        totalQuestions: totalSteps,
+        perfect: progressHistory.length === totalSteps && progressHistory.every(status => status === 'correct')
+    });
 
     // Hide planet viewer in completion
     document.getElementById('quiz-planet-badge').style.display = 'none';
@@ -627,6 +654,7 @@ const markProgressDot = (stepIndex, status) => {
 };
 
 const updateBadgeCount = () => {
+    if (window.TardisAchievements) return;
     const countEl = document.getElementById('badges-count');
     if (countEl) countEl.textContent = badgesEarned;
 };

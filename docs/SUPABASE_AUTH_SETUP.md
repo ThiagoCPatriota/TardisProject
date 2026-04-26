@@ -136,3 +136,20 @@ turnstileSiteKey: '',
 Não ative CAPTCHA obrigatório no painel do Supabase enquanto estiver usando apenas a continha local, porque o Supabase só valida CAPTCHA externo como Turnstile/hCaptcha quando essa proteção está ligada no dashboard.
 
 No futuro, se o projeto crescer e começar a receber spam real, a gente pode combinar a continha com outras proteções, como confirmação de e-mail, limites por IP em uma API intermediária ou Turnstile em modo invisível/menos intrusivo.
+
+## Nome de Explorador / Nickname
+
+A partir da versão v9, o cadastro também pede um **Nome de Explorador**.
+
+Esse nome é salvo no próprio Supabase Auth, dentro dos metadados do usuário:
+
+```txt
+user_metadata.explorer_name
+user_metadata.display_name
+```
+
+Por isso, para esta primeira versão, não é necessário criar uma tabela separada só para guardar o nickname.
+Depois do login, a navbar mostra o Nome de Explorador no lugar do e-mail.
+
+Observação: nesta etapa, o Nome de Explorador ainda não é único. Dois usuários podem escolher o mesmo nome.
+Quando formos criar conquistas, perfil público ou ranking, o ideal será criar uma tabela `profiles` com RLS e, se quisermos, uma regra de nickname único.

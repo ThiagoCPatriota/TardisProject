@@ -32,6 +32,10 @@ import { unloadSolarSystemDetails, reloadSolarSystemDetails } from './scene/rend
 // --- CONSTANTS ---
 const MOUSE_ZOOM_STEP = 2.0;
 
+const emitTardisEvent = (type, detail = {}) => {
+    window.dispatchEvent(new CustomEvent(`tardis:${type}`, { detail }));
+};
+
 // --- APP STATE ---
 let currentState = SceneState.SOLAR_SYSTEM;
 let selectedPlanet = null;
@@ -93,6 +97,12 @@ const enterPlanet = (pData) => {
 
         showPlanetInfo(pData);
         fetchNASAImage(pData.nameEN);
+
+        emitTardisEvent('planet-entered', {
+            planetName: pData.name,
+            planetNameEN: pData.nameEN,
+            isStar: Boolean(pData.isStar)
+        });
 
         setTimeout(() => {
             transitionOverlay.classList.remove('active');

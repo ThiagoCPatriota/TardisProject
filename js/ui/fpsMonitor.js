@@ -44,6 +44,8 @@ export function initFPSMonitor() {
 
     // Toggle with F key
     document.addEventListener('keydown', function (e) {
+        if (e.target?.closest?.('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) return;
+
         if (e.key === 'f' || e.key === 'F') {
             if (document.getElementById('planet-detail-modal').classList.contains('active')) return;
             if (document.getElementById('guided-tour-panel')) {

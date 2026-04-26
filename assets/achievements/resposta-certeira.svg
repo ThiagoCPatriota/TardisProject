@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Achievement badge">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.38"/>
+      <stop offset="48%" stop-color="#052e16" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="54" fill="url(#g)"/>
+  <path d="M42 36h172v184H42z" rx="32" fill="none" stroke="#22c55e" stroke-opacity=".18" stroke-width="5"/>
+  <circle cx="58" cy="58" r="3" fill="#e0f2fe" opacity=".75"/>
+  <circle cx="206" cy="72" r="2.5" fill="#e0f2fe" opacity=".65"/>
+  <circle cx="198" cy="190" r="3" fill="#e0f2fe" opacity=".5"/>
+  <g filter="url(#glow)"><circle cx="128" cy="128" r="62" fill="none" stroke="#22c55e" stroke-width="10"/><circle cx="128" cy="128" r="36" fill="none" stroke="#e0f2fe" stroke-width="8"/><circle cx="128" cy="128" r="11" fill="#22c55e"/><path d="M128 50v32M128 174v32M50 128h32M174 128h32" stroke="#22c55e" stroke-width="8" stroke-linecap="round"/></g>
+</svg>

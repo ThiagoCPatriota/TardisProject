@@ -423,3 +423,31 @@
 }
 
 .auth-hidden { display: none !important; }
+
+/* Nome de Explorador no perfil autenticado */
+.auth-account-name {
+  margin: 4px 0 6px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  word-break: break-word;
+}
+
+.auth-account-email {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.auth-logged-in .nav-auth-label {
+  max-width: 108px;
+}
+
+@media (pointer: coarse) and (max-width: 950px) and (orientation: landscape) {
+  .auth-account-name {
+    font-size: 15px;
+  }
+}

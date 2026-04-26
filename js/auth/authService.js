@@ -24,11 +24,17 @@ const ensureConfigured = () => {
     }
 };
 
-export const signUpWithEmail = async ({ email, password, captchaToken = null }) => {
+export const signUpWithEmail = async ({ email, password, explorerName = '', captchaToken = null }) => {
     ensureConfigured();
 
+    const cleanExplorerName = explorerName.trim().replace(/\s+/g, ' ');
+
     const options = {
-        emailRedirectTo: SUPABASE_CONFIG.authRedirectTo
+        emailRedirectTo: SUPABASE_CONFIG.authRedirectTo,
+        data: {
+            explorer_name: cleanExplorerName,
+            display_name: cleanExplorerName
+        }
     };
 
     if (captchaToken) options.captchaToken = captchaToken;
