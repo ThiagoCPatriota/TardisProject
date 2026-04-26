@@ -249,31 +249,64 @@ const render = () => {
     updateNavCount(state);
 };
 
+const withTimeout = (promise, timeoutMs = 2500, fallback = null) => {
+    let timer = null;
+
+    return Promise.race([
+        promise,
+        new Promise((resolve) => {
+            timer = setTimeout(() => resolve(fallback), timeoutMs);
+        })
+    ]).finally(() => clearTimeout(timer));
+};
+
+const safeSetAchievementSession = async (session) => {
+    try {
+        return await withTimeout(
+            setAchievementSession(session),
+            2500,
+            loadAchievementState()
+        );
+    } catch (error) {
+        console.warn('[Achievements] Não foi possível preparar a sessão de conquistas:', error);
+        return loadAchievementState();
+    }
+};
+
 const openPage = async () => {
     if (isOpeningPage) return;
     isOpeningPage = true;
 
-    const session = await getCurrentSession();
-    if (!session?.user) {
-        isOpeningPage = false;
+    try {
+        const session = await getCurrentSession();
+
+        if (!session?.user) {
+            requestLoginForAchievements();
+            return;
+        }
+
+        // Abre a tela imediatamente. Antes, se a sincronização com Supabase demorasse
+        // ou falhasse, parecia que o botão de conquistas não fazia nada.
+        page.classList.add('active');
+        page.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('achievements-open');
+        render();
+
+        await safeSetAchievementSession(session);
+        unlockAchievement('novo-explorador');
+        unlockAchievement('primeiro-salto');
+        unlockAchievement('painel-de-bordo');
+        render();
+
+        setTimeout(() => {
+            page.querySelector('#achievements-close')?.focus();
+        }, 50);
+    } catch (error) {
+        console.error('[Achievements] Falha ao abrir painel:', error);
         requestLoginForAchievements();
-        return;
+    } finally {
+        isOpeningPage = false;
     }
-
-    await setAchievementSession(session);
-    unlockAchievement('novo-explorador');
-    unlockAchievement('primeiro-salto');
-    unlockAchievement('painel-de-bordo');
-
-    page.classList.add('active');
-    page.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('achievements-open');
-    render();
-    isOpeningPage = false;
-
-    setTimeout(() => {
-        page.querySelector('#achievements-close')?.focus();
-    }, 50);
 };
 
 const closePage = () => {
@@ -338,20 +371,42 @@ const createPage = () => {
     detailPanel = page.querySelector('#achievement-detail-panel');
 };
 
-const wirePageEvents = () => {
+const wireNavBadgesButton = () => {
     const navBadges = document.getElementById('nav-badges');
-    if (navBadges) {
-        navBadges.setAttribute('role', 'button');
-        navBadges.setAttribute('tabindex', '0');
-        navBadges.setAttribute('aria-label', 'Abrir conquistas');
-        navBadges.addEventListener('click', openPage);
-        navBadges.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                openPage();
-            }
-        });
-    }
+    if (!navBadges || navBadges.dataset.achievementsBound === 'true') return;
+
+    navBadges.dataset.achievementsBound = 'true';
+    navBadges.setAttribute('role', 'button');
+    navBadges.setAttribute('tabindex', '0');
+    navBadges.setAttribute('aria-label', 'Abrir conquistas');
+
+    navBadges.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openPage();
+    });
+
+    navBadges.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openPage();
+        }
+    });
+};
+
+const wirePageEvents = () => {
+    wireNavBadgesButton();
+
+    // Fallback defensivo: se a navbar for alterada por outro módulo no futuro,
+    // esse listener delegado continua abrindo as conquistas.
+    document.addEventListener('click', (event) => {
+        const navBadges = event.target.closest?.('#nav-badges');
+        if (!navBadges) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        openPage();
+    }, true);
 
     page.querySelector('#achievements-close')?.addEventListener('click', closePage);
     page.querySelector('.achievements-backdrop')?.addEventListener('click', closePage);
@@ -410,7 +465,7 @@ const wireAchievementTriggers = async () => {
     unlockSessionStartAchievements();
 
     onAuthStateChange(async (_event, sessionData) => {
-        await setAchievementSession(sessionData);
+        await safeSetAchievementSession(sessionData);
 
         if (sessionData?.user) {
             unlockSessionStartAchievements();
@@ -429,7 +484,7 @@ const wireAchievementTriggers = async () => {
 
     window.addEventListener('tardis:auth-success', async (event) => {
         const session = event.detail?.session || await getCurrentSession();
-        await setAchievementSession(session);
+        await safeSetAchievementSession(session);
         unlockSessionStartAchievements();
 
         if (pendingOpenAfterLogin) {
@@ -439,6 +494,10 @@ const wireAchievementTriggers = async () => {
                 openPage();
             }, 300);
         }
+    });
+
+    window.addEventListener('tardis:achievements-auth-required', () => {
+        requestLoginForAchievements();
     });
 
     window.addEventListener('tardis:achievements-updated', (event) => {
@@ -480,14 +539,22 @@ const wireAchievementTriggers = async () => {
 const initAchievements = async () => {
     createPage();
     wirePageEvents();
-    await wireAchievementTriggers();
+
+    try {
+        await wireAchievementTriggers();
+    } catch (error) {
+        console.warn('[Achievements] Inicialização parcial. O botão continuará abrindo o painel:', error);
+    }
+
     render();
 
     window.TardisAchievements = {
         unlock: unlockAchievement,
         addProgress: addAchievementProgress,
         open: openPage,
-        close: closePage
+        close: closePage,
+        render,
+        rebindButton: wireNavBadgesButton
     };
 };
 

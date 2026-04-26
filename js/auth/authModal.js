@@ -210,24 +210,43 @@ const setMode = async (nextMode) => {
     mode = nextMode;
     clearMessage();
 
+    const isSignupMode = mode === 'signup';
     const signupTab = modal?.querySelector('#auth-tab-signup');
     const loginTab = modal?.querySelector('#auth-tab-login');
     const title = modal?.querySelector('#auth-title');
     const subtitle = modal?.querySelector('#auth-subtitle');
+    const explorerInput = modal?.querySelector(SELECTORS.explorerName);
+    const confirmInput = modal?.querySelector(SELECTORS.confirm);
+    const localChallengeInput = modal?.querySelector(SELECTORS.localChallengeInput);
 
-    signupTab?.classList.toggle('active', mode === 'signup');
-    loginTab?.classList.toggle('active', mode === 'login');
-    explorerField?.classList.toggle('auth-hidden', mode !== 'signup');
-    confirmField?.classList.toggle('auth-hidden', mode !== 'signup');
+    signupTab?.classList.toggle('active', isSignupMode);
+    loginTab?.classList.toggle('active', !isSignupMode);
+    explorerField?.classList.toggle('auth-hidden', !isSignupMode);
+    confirmField?.classList.toggle('auth-hidden', !isSignupMode);
+
+    // Campo escondido com `required` bloqueava o submit nativo do navegador no Login.
+    // Ao mudar de aba, desativamos os campos que não fazem parte daquele fluxo.
+    if (explorerInput) {
+        explorerInput.required = isSignupMode;
+        explorerInput.disabled = !isSignupMode;
+    }
+
+    if (confirmInput) {
+        confirmInput.disabled = !isSignupMode;
+    }
+
+    if (localChallengeInput) {
+        localChallengeInput.disabled = !isSignupMode || isTurnstileConfigured();
+    }
 
     const passwordInput = modal?.querySelector(SELECTORS.password);
     if (passwordInput) {
-        passwordInput.autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
+        passwordInput.autocomplete = isSignupMode ? 'new-password' : 'current-password';
     }
 
-    if (title) title.textContent = mode === 'signup' ? 'Criar conta' : 'Entrar';
+    if (title) title.textContent = isSignupMode ? 'Criar conta' : 'Entrar';
     if (subtitle) {
-        subtitle.textContent = mode === 'signup'
+        subtitle.textContent = isSignupMode
             ? 'Escolha seu Nome de Explorador, e-mail, senha e resolva uma continha rápida.'
             : 'Entre com o e-mail e senha da sua conta T.A.R.D.I.S.';
     }
@@ -418,7 +437,7 @@ const createModal = () => {
                         <button class="auth-tab" id="auth-tab-login" type="button">LOGIN</button>
                     </div>
 
-                    <form class="auth-form" id="auth-form">
+                    <form class="auth-form" id="auth-form" novalidate>
                         <div class="auth-field" id="auth-explorer-field">
                             <label for="auth-explorer-name">Nome de Explorador</label>
                             <input id="auth-explorer-name" type="text" autocomplete="nickname" maxlength="18" placeholder="Ex: Astro Theo" required>
