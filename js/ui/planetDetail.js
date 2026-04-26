@@ -232,6 +232,14 @@ export function openPlanetDetail(pData) {
 
     modal.classList.add('active');
 
+    window.dispatchEvent(new CustomEvent('tardis:planetDetailsViewed', {
+        detail: {
+            planetName: pData.name,
+            planetNameEN: pData.nameEN,
+            isStar: Boolean(pData.isStar)
+        }
+    }));
+
     const searchQuery = pData.isStar ? 'Sun solar' : `planet ${pData.nameEN}`;
     fetchNASAGallery(searchQuery, 8).then(images => {
         gallery.innerHTML = '';

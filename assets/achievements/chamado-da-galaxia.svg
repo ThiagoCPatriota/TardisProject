@@ -1,19 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Achievement badge">
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="Chamado da Galáxia">
   <defs>
-    <radialGradient id="g" cx="50%" cy="25%" r="75%">
-      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.38"/>
-      <stop offset="48%" stop-color="#241341" stop-opacity="0.96"/>
+    <radialGradient id="bg" cx="50%" cy="36%" r="72%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity=".42"/>
+      <stop offset="45%" stop-color="#0f2a5f" stop-opacity=".88"/>
       <stop offset="100%" stop-color="#020617"/>
     </radialGradient>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <linearGradient id="g" x1="58" y1="42" x2="262" y2="276" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="42%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
-  <rect width="256" height="256" rx="54" fill="url(#g)"/>
-  <path d="M42 36h172v184H42z" rx="32" fill="none" stroke="#a855f7" stroke-opacity=".18" stroke-width="5"/>
-  <circle cx="58" cy="58" r="3" fill="#e0f2fe" opacity=".75"/>
-  <circle cx="206" cy="72" r="2.5" fill="#e0f2fe" opacity=".65"/>
-  <circle cx="198" cy="190" r="3" fill="#e0f2fe" opacity=".5"/>
-  <g filter="url(#glow)"><circle cx="128" cy="148" r="12" fill="#a855f7"/><path d="M92 122c20-20 52-20 72 0M72 98c31-31 81-31 112 0M52 74c42-42 110-42 152 0" fill="none" stroke="#a855f7" stroke-width="10" stroke-linecap="round"/><path d="M128 160v34" stroke="#e0f2fe" stroke-width="9" stroke-linecap="round"/></g>
+  <rect width="320" height="320" rx="52" fill="#020617"/>
+  <rect x="10" y="10" width="300" height="300" rx="44" fill="url(#bg)" stroke="url(#g)" stroke-width="3"/>
+  <g><circle cx="110" cy="133" r="1.4" fill="#ffffff" opacity="0.43"/><circle cx="154" cy="23" r="1.8" fill="#ffffff" opacity="0.29"/><circle cx="50" cy="194" r="1.4" fill="#ffffff" opacity="0.45"/><circle cx="186" cy="202" r="1.9" fill="#ffffff" opacity="0.55"/><circle cx="108" cy="239" r="1.0" fill="#ffffff" opacity="0.22"/><circle cx="213" cy="85" r="1.7" fill="#ffffff" opacity="0.75"/><circle cx="88" cy="216" r="2.0" fill="#ffffff" opacity="0.71"/><circle cx="73" cy="51" r="1.8" fill="#ffffff" opacity="0.54"/><circle cx="182" cy="263" r="1.7" fill="#ffffff" opacity="0.67"/><circle cx="269" cy="42" r="1.3" fill="#ffffff" opacity="0.77"/><circle cx="231" cy="299" r="1.6" fill="#ffffff" opacity="0.6"/><circle cx="192" cy="271" r="1.3" fill="#ffffff" opacity="0.26"/><circle cx="162" cy="172" r="1.1" fill="#ffffff" opacity="0.59"/><circle cx="112" cy="228" r="0.8" fill="#ffffff" opacity="0.55"/><circle cx="268" cy="153" r="1.2" fill="#ffffff" opacity="0.25"/><circle cx="223" cy="299" r="1.9" fill="#ffffff" opacity="0.34"/><circle cx="236" cy="91" r="1.7" fill="#ffffff" opacity="0.58"/><circle cx="148" cy="289" r="1.0" fill="#ffffff" opacity="0.6"/><circle cx="40" cy="261" r="1.6" fill="#ffffff" opacity="0.49"/><circle cx="34" cy="202" r="1.7" fill="#ffffff" opacity="0.45"/><circle cx="162" cy="144" r="2.0" fill="#ffffff" opacity="0.33"/><circle cx="146" cy="123" r="1.6" fill="#ffffff" opacity="0.4"/></g>
+  <circle cx="160" cy="160" r="104" fill="#020617" opacity=".38"/>
+  <g filter="url(#glow)"><path d="M87 163 C102 87 218 87 233 163 C217 239 103 239 87 163Z" fill="none" stroke="url(#g)" stroke-width="7" opacity=".7"/></g>
+  <text x="160" y="175" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="800" fill="#f8fbff" filter="url(#glow)">CG</text>
+  <text x="160" y="64" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="800" fill="#38bdf8" filter="url(#glow)">?</text>
+  <text x="160" y="270" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#dbeafe">Modo Aventura</text>
 </svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="7500 Pontos no Radar">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="36%" r="72%">
+      <stop offset="0%" stop-color="#e0f2fe" stop-opacity=".42"/>
+      <stop offset="45%" stop-color="#0891b2" stop-opacity=".88"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="g" x1="58" y1="42" x2="262" y2="276" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="42%" stop-color="#e0f2fe"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="320" height="320" rx="52" fill="#020617"/>
+  <rect x="10" y="10" width="300" height="300" rx="44" fill="url(#bg)" stroke="url(#g)" stroke-width="3"/>
+  <g><circle cx="77" cy="207" r="0.8" fill="#ffffff" opacity="0.36"/><circle cx="197" cy="196" r="1.1" fill="#ffffff" opacity="0.41"/><circle cx="259" cy="46" r="2.1" fill="#ffffff" opacity="0.47"/><circle cx="71" cy="136" r="0.9" fill="#ffffff" opacity="0.73"/><circle cx="213" cy="276" r="1.0" fill="#ffffff" opacity="0.37"/><circle cx="251" cy="116" r="1.9" fill="#ffffff" opacity="0.42"/><circle cx="191" cy="227" r="1.2" fill="#ffffff" opacity="0.52"/><circle cx="24" cy="103" r="1.5" fill="#ffffff" opacity="0.4"/><circle cx="281" cy="146" r="1.1" fill="#ffffff" opacity="0.71"/><circle cx="76" cy="40" r="1.2" fill="#ffffff" opacity="0.45"/><circle cx="89" cy="280" r="1.5" fill="#ffffff" opacity="0.57"/><circle cx="148" cy="141" r="1.8" fill="#ffffff" opacity="0.66"/><circle cx="272" cy="109" r="1.5" fill="#ffffff" opacity="0.44"/><circle cx="270" cy="266" r="1.1" fill="#ffffff" opacity="0.54"/><circle cx="252" cy="276" r="1.2" fill="#ffffff" opacity="0.32"/><circle cx="262" cy="85" r="1.2" fill="#ffffff" opacity="0.77"/><circle cx="286" cy="32" r="1.0" fill="#ffffff" opacity="0.68"/><circle cx="107" cy="35" r="1.1" fill="#ffffff" opacity="0.75"/><circle cx="201" cy="73" r="1.2" fill="#ffffff" opacity="0.65"/><circle cx="18" cy="68" r="2.0" fill="#ffffff" opacity="0.28"/><circle cx="50" cy="43" r="1.9" fill="#ffffff" opacity="0.58"/><circle cx="179" cy="174" r="1.4" fill="#ffffff" opacity="0.33"/></g>
+  <circle cx="160" cy="160" r="104" fill="#020617" opacity=".38"/>
+  <g filter="url(#glow)"><polygon points="160,70 188,127 251,136 206,181 216,244 160,214 104,244 114,181 69,136 132,127" fill="none" stroke="url(#g)" stroke-width="7" opacity=".72"/></g>
+  <text x="160" y="175" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="800" fill="#f8fbff" filter="url(#glow)">7P</text>
+  <text x="160" y="64" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="800" fill="#e0f2fe" filter="url(#glow)">★</text>
+  <text x="160" y="270" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#dbeafe">Pontuação</text>
+</svg>

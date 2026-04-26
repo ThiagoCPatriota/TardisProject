@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="Arquivo de Missões 3">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="36%" r="72%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity=".42"/>
+      <stop offset="45%" stop-color="#0f2a5f" stop-opacity=".88"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="g" x1="58" y1="42" x2="262" y2="276" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="42%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="320" height="320" rx="52" fill="#020617"/>
+  <rect x="10" y="10" width="300" height="300" rx="44" fill="url(#bg)" stroke="url(#g)" stroke-width="3"/>
+  <g><circle cx="202" cy="277" r="1.2" fill="#ffffff" opacity="0.51"/><circle cx="119" cy="35" r="0.9" fill="#ffffff" opacity="0.77"/><circle cx="25" cy="55" r="1.7" fill="#ffffff" opacity="0.38"/><circle cx="302" cy="167" r="1.5" fill="#ffffff" opacity="0.53"/><circle cx="223" cy="168" r="1.5" fill="#ffffff" opacity="0.37"/><circle cx="182" cy="253" r="2.1" fill="#ffffff" opacity="0.71"/><circle cx="304" cy="237" r="1.1" fill="#ffffff" opacity="0.59"/><circle cx="155" cy="110" r="1.0" fill="#ffffff" opacity="0.59"/><circle cx="85" cy="149" r="1.5" fill="#ffffff" opacity="0.39"/><circle cx="19" cy="204" r="1.2" fill="#ffffff" opacity="0.27"/><circle cx="231" cy="208" r="1.9" fill="#ffffff" opacity="0.48"/><circle cx="119" cy="156" r="1.9" fill="#ffffff" opacity="0.61"/><circle cx="116" cy="226" r="1.9" fill="#ffffff" opacity="0.4"/><circle cx="279" cy="60" r="1.8" fill="#ffffff" opacity="0.24"/><circle cx="296" cy="203" r="0.9" fill="#ffffff" opacity="0.35"/><circle cx="62" cy="65" r="2.0" fill="#ffffff" opacity="0.54"/><circle cx="190" cy="277" r="1.7" fill="#ffffff" opacity="0.72"/><circle cx="161" cy="302" r="1.7" fill="#ffffff" opacity="0.35"/><circle cx="193" cy="131" r="0.9" fill="#ffffff" opacity="0.24"/><circle cx="160" cy="18" r="1.5" fill="#ffffff" opacity="0.75"/><circle cx="137" cy="40" r="1.0" fill="#ffffff" opacity="0.24"/><circle cx="245" cy="281" r="1.0" fill="#ffffff" opacity="0.44"/></g>
+  <circle cx="160" cy="160" r="104" fill="#020617" opacity=".38"/>
+  <g filter="url(#glow)"><path d="M88 218 L160 92 L232 218 Z" fill="none" stroke="url(#g)" stroke-width="7" opacity=".65"/><circle cx="160" cy="92" r="8" fill="url(#g)"/></g>
+  <text x="160" y="175" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="800" fill="#f8fbff" filter="url(#glow)">AM</text>
+  <text x="160" y="64" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="800" fill="#38bdf8" filter="url(#glow)">⌁</text>
+  <text x="160" y="270" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#dbeafe">Dossiê de Missões</text>
+</svg>

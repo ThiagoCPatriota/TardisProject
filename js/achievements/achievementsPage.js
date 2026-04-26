@@ -10,6 +10,7 @@ import {
     getCompletionPercent,
     unlockAchievement,
     addAchievementProgress,
+    setAchievementProgress,
     trackUniqueMetaItem,
     setAchievementSession,
     hasActiveAchievementUser,
@@ -23,6 +24,7 @@ let detailPanel = null;
 let activeCategory = 'Todas';
 let activeStatus = 'all';
 let selectedAchievementId = ACHIEVEMENTS_DATA[0]?.id || null;
+let searchTerm = '';
 let toastTimer = null;
 let pendingOpenAfterLogin = false;
 let isOpeningPage = false;
@@ -57,12 +59,22 @@ const getAchievementStatus = (achievement, entry) => {
 };
 
 const getFilteredAchievements = (state) => {
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase('pt-BR');
+
     return ACHIEVEMENTS_DATA.filter((achievement) => {
         const entry = getAchievementEntry(state, achievement.id);
         const status = getAchievementStatus(achievement, entry);
         const categoryOk = activeCategory === 'Todas' || achievement.category === activeCategory;
         const statusOk = activeStatus === 'all' || activeStatus === status;
-        return categoryOk && statusOk;
+        const searchOk = !normalizedSearch || [
+            achievement.title,
+            achievement.description,
+            achievement.detail,
+            achievement.category,
+            RARITY_META[achievement.rarity]?.label
+        ].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(normalizedSearch);
+
+        return categoryOk && statusOk && searchOk;
     });
 };
 
@@ -70,6 +82,98 @@ const updateNavCount = (state = loadAchievementState()) => {
     const countEl = document.getElementById('badges-count');
     if (!countEl) return;
     countEl.textContent = hasActiveAchievementUser() ? getUnlockedCount(state) : 0;
+};
+
+const normalizeKey = (value = '') => String(value).trim();
+
+const getTriggeredAchievements = (type, predicate = () => true) => {
+    return ACHIEVEMENTS_DATA.filter((achievement) => {
+        const trigger = achievement.trigger;
+        return trigger?.type === type && predicate(trigger, achievement);
+    });
+};
+
+const unlockTriggered = (type, meta = {}, predicate = () => true) => {
+    if (!hasActiveAchievementUser()) return;
+    getTriggeredAchievements(type, predicate).forEach((achievement) => {
+        unlockAchievement(achievement.id, meta);
+    });
+};
+
+const addTriggeredProgress = (type, amount = 1, meta = {}, predicate = () => true) => {
+    if (!hasActiveAchievementUser()) return;
+    getTriggeredAchievements(type, predicate).forEach((achievement) => {
+        addAchievementProgress(achievement.id, amount, meta);
+    });
+};
+
+const trackTriggeredUnique = (type, metaKey, itemValue, predicate = () => true) => {
+    if (!hasActiveAchievementUser() || !itemValue) return;
+    getTriggeredAchievements(type, predicate).forEach((achievement) => {
+        trackUniqueMetaItem(achievement.id, metaKey, itemValue);
+    });
+};
+
+let lastLoginTrackAt = 0;
+
+const trackDailyActivity = () => {
+    if (!hasActiveAchievementUser()) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    trackTriggeredUnique('active_day', 'activeDays', today);
+};
+
+const trackLoginSession = () => {
+    if (!hasActiveAchievementUser()) return;
+
+    const now = Date.now();
+    const shouldCountSession = now - lastLoginTrackAt > 1500;
+    lastLoginTrackAt = now;
+
+    unlockTriggered('account_login');
+    if (shouldCountSession) {
+        addTriggeredProgress('login_session_count', 1);
+    }
+    trackDailyActivity();
+};
+
+const handleAchievementsPanelOpened = () => {
+    if (!hasActiveAchievementUser()) return;
+
+    unlockTriggered('achievements_open');
+    addTriggeredProgress('achievements_open_count', 1);
+};
+
+const trackPlanetGroups = (planetNameEN) => {
+    trackTriggeredUnique(
+        'planet_group',
+        'visitedGroupPlanets',
+        planetNameEN,
+        (trigger) => Array.isArray(trigger.planets) && trigger.planets.includes(planetNameEN)
+    );
+};
+
+let syncingAchievementTotal = false;
+
+const syncAchievementTotalMilestones = (state = loadAchievementState()) => {
+    if (!hasActiveAchievementUser() || syncingAchievementTotal) return;
+
+    const totalUnlocked = getUnlockedCount(state);
+    const totalMilestones = getTriggeredAchievements('achievement_unlocked_total');
+    if (!totalMilestones.length) return;
+
+    syncingAchievementTotal = true;
+    try {
+        totalMilestones.forEach((achievement) => {
+            const entry = getAchievementEntry(state, achievement.id);
+            const nextProgress = Math.min(totalUnlocked, achievement.maxProgress);
+            if (!entry.unlockedAt && Number(entry.progress || 0) !== nextProgress) {
+                setAchievementProgress(achievement.id, nextProgress, { totalUnlocked });
+            }
+        });
+    } finally {
+        syncingAchievementTotal = false;
+    }
 };
 
 const requestLoginForAchievements = () => {
@@ -293,9 +397,8 @@ const openPage = async () => {
         render();
 
         await safeSetAchievementSession(session);
-        unlockAchievement('novo-explorador');
-        unlockAchievement('primeiro-salto');
-        unlockAchievement('painel-de-bordo');
+        trackLoginSession();
+        handleAchievementsPanelOpened();
         render();
 
         setTimeout(() => {
@@ -359,6 +462,11 @@ const createPage = () => {
                 <div class="achievements-filter-row achievements-status-row" id="achievements-status-filters"></div>
             </nav>
 
+            <label class="achievements-search" for="achievements-search-input">
+                <span>Buscar conquista</span>
+                <input id="achievements-search-input" type="search" placeholder="Digite missão, planeta, raridade ou categoria..." autocomplete="off">
+            </label>
+
             <main class="achievements-content">
                 <section class="achievements-grid" id="achievements-grid" aria-label="Lista de conquistas"></section>
                 <aside class="achievement-detail-panel" id="achievement-detail-panel" aria-label="Detalhes da conquista selecionada"></aside>
@@ -419,6 +527,11 @@ const wirePageEvents = () => {
         event.stopPropagation();
     }, { passive: true });
 
+    page.querySelector('#achievements-search-input')?.addEventListener('input', (event) => {
+        searchTerm = event.target.value || '';
+        render();
+    });
+
     page.addEventListener('click', (event) => {
         const categoryButton = event.target.closest('[data-category]');
         if (categoryButton) {
@@ -454,9 +567,7 @@ const wirePageEvents = () => {
 };
 
 const unlockSessionStartAchievements = () => {
-    if (!hasActiveAchievementUser()) return;
-    unlockAchievement('novo-explorador');
-    unlockAchievement('primeiro-salto');
+    trackLoginSession();
 };
 
 const wireAchievementTriggers = async () => {
@@ -503,36 +614,119 @@ const wireAchievementTriggers = async () => {
     window.addEventListener('tardis:achievements-updated', (event) => {
         updateNavCount(event.detail.state);
         if (event.detail.unlockedAchievement) showAchievementToast(event.detail.unlockedAchievement);
+        syncAchievementTotalMilestones(event.detail.state);
         render();
     });
 
     window.addEventListener('tardis:adventure-started', () => {
-        unlockAchievement('chamado-da-galaxia');
+        if (!hasActiveAchievementUser()) return;
+        unlockTriggered('adventure_started');
+        addTriggeredProgress('adventure_started_count', 1);
     });
 
     window.addEventListener('tardis:question-answered', (event) => {
-        unlockAchievement('primeira-missao');
-        if (event.detail.correct) {
-            unlockAchievement('resposta-certeira');
-            addAchievementProgress('primeiros-10-pontos', 10);
+        if (!hasActiveAchievementUser()) return;
+
+        const detail = event.detail || {};
+        const planetNameEN = normalizeKey(detail.planetNameEN || detail.planetName);
+
+        unlockTriggered('question_answered', detail);
+        addTriggeredProgress('question_answered_count', 1, detail);
+
+        if (planetNameEN) {
+            trackTriggeredUnique('question_planet_unique', 'questionPlanets', planetNameEN);
+        }
+
+        if (detail.correct) {
+            unlockTriggered('correct_answer', detail);
+            addTriggeredProgress('correct_answer_count', 1, detail);
+            addTriggeredProgress('score_total', 10, detail);
+        } else {
+            addTriggeredProgress('wrong_answer_count', 1, detail);
         }
     });
 
-    window.addEventListener('tardis:adventure-completed', () => {
-        unlockAchievement('aprendiz-do-doutor');
+    window.addEventListener('tardis:adventure-completed', (event) => {
+        if (!hasActiveAchievementUser()) return;
+
+        const detail = event.detail || {};
+        unlockTriggered('adventure_completed', detail);
+        addTriggeredProgress('adventure_completed_count', 1, detail);
+
+        if (detail.perfect) {
+            addTriggeredProgress('perfect_adventure_count', 1, detail);
+        }
+
+        const percent = Number(detail.percent) || 0;
+        unlockTriggered('adventure_percent', detail, (trigger) => percent >= Number(trigger.percent || 0));
     });
 
     window.addEventListener('tardis:planet-entered', (event) => {
-        unlockAchievement('primeira-aterrissagem');
-        trackUniqueMetaItem('turista-espacial', 'visitedPlanets', event.detail.planetNameEN || event.detail.planetName);
+        if (!hasActiveAchievementUser()) return;
+
+        const detail = event.detail || {};
+        const planetNameEN = normalizeKey(detail.planetNameEN || detail.planetName);
+
+        unlockTriggered('planet_entered', detail);
+
+        if (planetNameEN) {
+            trackTriggeredUnique('unique_planet_visit', 'visitedPlanets', planetNameEN);
+            unlockTriggered('planet_first_visit', detail, (trigger) => trigger.planet === planetNameEN);
+            addTriggeredProgress('planet_visit_count', 1, detail, (trigger) => trigger.planet === planetNameEN);
+            trackPlanetGroups(planetNameEN);
+        }
     });
 
-    document.getElementById('detail-btn')?.addEventListener('click', () => {
-        unlockAchievement('curioso-do-cosmos');
+    window.addEventListener('tardis:planetDetailsViewed', (event) => {
+        if (!hasActiveAchievementUser()) return;
+
+        const detail = event.detail || {};
+        const planetNameEN = normalizeKey(detail.planetNameEN || detail.planetName);
+
+        unlockTriggered('planet_detail_opened', detail);
+        addTriggeredProgress('planet_detail_count', 1, detail);
+
+        if (planetNameEN) {
+            unlockTriggered('planet_detail_specific', detail, (trigger) => trigger.planet === planetNameEN);
+            trackTriggeredUnique('unique_planet_detail', 'planetDetails', planetNameEN);
+        }
+    });
+
+    window.addEventListener('tardis:missionViewed', (event) => {
+        if (!hasActiveAchievementUser()) return;
+
+        const detail = event.detail || {};
+        const planet = normalizeKey(detail.planet);
+        const mission = normalizeKey(detail.mission);
+        const missionKey = planet && mission ? `${planet}::${mission}` : mission;
+
+        unlockTriggered('mission_viewed', detail);
+        addTriggeredProgress('mission_viewed_count', 1, detail);
+
+        if (missionKey) {
+            trackTriggeredUnique('unique_mission_view', 'missions', missionKey);
+        }
+
+        if (planet) {
+            unlockTriggered('mission_planet_first', detail, (trigger) => trigger.planet === planet);
+            trackTriggeredUnique('mission_planet_unique', `missions_${planet}`, missionKey, (trigger) => trigger.planet === planet);
+        }
+
+        if (planet && mission) {
+            unlockTriggered('mission_specific', detail, (trigger) => trigger.planet === planet && trigger.mission === mission);
+        }
+    });
+
+    window.addEventListener('tardis:apodOpened', () => {
+        if (!hasActiveAchievementUser()) return;
+        unlockTriggered('apod_opened');
+        addTriggeredProgress('apod_opened_count', 1);
     });
 
     document.getElementById('apod-header-click')?.addEventListener('click', () => {
-        unlockAchievement('imagem-do-dia');
+        if (!hasActiveAchievementUser()) return;
+        unlockTriggered('apod_opened');
+        addTriggeredProgress('apod_opened_count', 1);
     });
 };
 

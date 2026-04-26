@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="Marte: Visitante 3x">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="36%" r="72%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity=".42"/>
+      <stop offset="45%" stop-color="#064e3b" stop-opacity=".88"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="g" x1="58" y1="42" x2="262" y2="276" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="42%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="320" height="320" rx="52" fill="#020617"/>
+  <rect x="10" y="10" width="300" height="300" rx="44" fill="url(#bg)" stroke="url(#g)" stroke-width="3"/>
+  <g><circle cx="62" cy="171" r="2.1" fill="#ffffff" opacity="0.35"/><circle cx="194" cy="98" r="1.3" fill="#ffffff" opacity="0.65"/><circle cx="226" cy="245" r="1.3" fill="#ffffff" opacity="0.43"/><circle cx="228" cy="146" r="1.3" fill="#ffffff" opacity="0.5"/><circle cx="115" cy="192" r="0.9" fill="#ffffff" opacity="0.47"/><circle cx="178" cy="26" r="1.9" fill="#ffffff" opacity="0.49"/><circle cx="67" cy="56" r="1.3" fill="#ffffff" opacity="0.41"/><circle cx="161" cy="56" r="1.6" fill="#ffffff" opacity="0.49"/><circle cx="129" cy="274" r="2.1" fill="#ffffff" opacity="0.61"/><circle cx="111" cy="58" r="1.5" fill="#ffffff" opacity="0.72"/><circle cx="287" cy="219" r="1.5" fill="#ffffff" opacity="0.41"/><circle cx="194" cy="225" r="1.2" fill="#ffffff" opacity="0.66"/><circle cx="263" cy="19" r="1.4" fill="#ffffff" opacity="0.68"/><circle cx="271" cy="153" r="1.9" fill="#ffffff" opacity="0.37"/><circle cx="85" cy="117" r="1.8" fill="#ffffff" opacity="0.55"/><circle cx="154" cy="49" r="1.8" fill="#ffffff" opacity="0.36"/><circle cx="37" cy="90" r="2.0" fill="#ffffff" opacity="0.57"/><circle cx="250" cy="208" r="1.4" fill="#ffffff" opacity="0.31"/><circle cx="263" cy="105" r="1.2" fill="#ffffff" opacity="0.48"/><circle cx="156" cy="99" r="1.5" fill="#ffffff" opacity="0.26"/><circle cx="146" cy="37" r="1.2" fill="#ffffff" opacity="0.56"/><circle cx="158" cy="206" r="1.6" fill="#ffffff" opacity="0.31"/></g>
+  <circle cx="160" cy="160" r="104" fill="#020617" opacity=".38"/>
+  <g filter="url(#glow)"><ellipse cx="160" cy="164" rx="82" ry="24" fill="none" stroke="url(#g)" stroke-width="7" opacity=".75" transform="rotate(-18 160 164)"/></g>
+  <text x="160" y="175" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="800" fill="#f8fbff" filter="url(#glow)">MV</text>
+  <text x="160" y="64" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="800" fill="#34d399" filter="url(#glow)">◉</text>
+  <text x="160" y="270" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#dbeafe">Exploração Planetária</text>
+</svg>
