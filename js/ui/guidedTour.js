@@ -13,6 +13,15 @@ import { navigateToPlanet } from '../camera/cameraController.js';
 import { showPlanetInfo, hideInfoPanel } from './infoPanel.js';
 import { highlightPlanetSelector, hidePlanetSelector, showPlanetSelector } from './planetSelector.js';
 import { PLANET_ICONS } from './questionGenerator.js';
+import {
+    addCorrectPoints,
+    applyWrongPenalty,
+    formatAdventureScore,
+    formatPenalty,
+    getAdventureScorePercent,
+    getBadgeScoreUnits,
+    getMaxAdventureScore
+} from './adventureScore.js';
 
 // --- STATE ---
 let guidedModeActive = false;
@@ -280,7 +289,7 @@ const startTour = async () => {
             const savedState = JSON.parse(localStorage.getItem('tardis_quiz_state'));
             if (savedState) {
                 currentStep = savedState.step || 0;
-                score = savedState.score || 0;
+                score = Number(savedState.score) || 0;
                 hasAnswered = savedState.answered || false;
                 progressHistory = savedState.history || [];
             }
@@ -393,7 +402,7 @@ const showStep = (stepIndex) => {
     }
 
     // Update UI
-    document.getElementById('quiz-score').textContent = score;
+    document.getElementById('quiz-score').textContent = formatAdventureScore(score);
     document.getElementById('quiz-step').textContent = `${stepIndex + 1}/${totalSteps}`;
 
     // Planet badge
@@ -448,8 +457,8 @@ const checkAnswer = (selectedIndex) => {
     if (selectedIndex === q.correctIndex) {
         // CORRECT
         hasAnswered = true;
-        score += 10;
-        document.getElementById('quiz-score').textContent = score;
+        score = addCorrectPoints(score);
+        document.getElementById('quiz-score').textContent = formatAdventureScore(score);
 
         feedbackEl.style.display = 'block';
         feedbackEl.className = 'quiz-feedback quiz-feedback-correct';
@@ -484,9 +493,12 @@ const checkAnswer = (selectedIndex) => {
 
     } else {
         // WRONG
+        score = applyWrongPenalty(score);
+        document.getElementById('quiz-score').textContent = formatAdventureScore(score);
+
         feedbackEl.style.display = 'block';
         feedbackEl.className = 'quiz-feedback quiz-feedback-wrong';
-        feedbackEl.innerHTML = '❌ Tente novamente!';
+        feedbackEl.innerHTML = `❌ <strong>Tente novamente!</strong> -${formatPenalty()} pontos`;
 
         const line = DOCTOR_WRONG[Math.floor(Math.random() * DOCTOR_WRONG.length)];
         typewriterEffect(speechText, line(q.hint), 22);
@@ -531,9 +543,9 @@ const showCompletion = () => {
     localStorage.removeItem('tardis_quiz_date');
     localStorage.removeItem('tardis_quiz_state');
 
-    const maxScore = totalSteps * 10;
-    const pct = Math.round((score / maxScore) * 100);
-    const earned = BADGE_DEFINITIONS.filter(b => score / 10 >= b.threshold);
+    const maxScore = getMaxAdventureScore(totalSteps);
+    const pct = getAdventureScorePercent(score, totalSteps);
+    const earned = BADGE_DEFINITIONS.filter(b => getBadgeScoreUnits(score) >= b.threshold);
 
     // Hide planet viewer in completion
     document.getElementById('quiz-planet-badge').style.display = 'none';
@@ -544,10 +556,10 @@ const showCompletion = () => {
     // Doctor completion speech
     const speechText = document.getElementById('quiz-speech-text');
     const completionSpeech = pct >= 80
-        ? `Brilhante! ${pct}% de acertos! Você seria um excelente companheiro da TARDIS. Geronimo! 🌌`
+        ? `Brilhante! ${pct}% de desempenho! Você seria um excelente companheiro da TARDIS. Geronimo! 🌌`
         : pct >= 50
-            ? `Nada mal! ${pct}% de acertos. Continue explorando e tente novamente amanhã!`
-            : `Hmm, ${pct}% de acertos. Leia os detalhes dos planetas e volte amanhã!`;
+            ? `Nada mal! ${pct}% de desempenho. Continue explorando e tente novamente amanhã!`
+            : `Hmm, ${pct}% de desempenho. Leia os detalhes dos planetas e volte amanhã!`;
 
     typewriterEffect(speechText, completionSpeech, 18);
 
@@ -560,7 +572,7 @@ const showCompletion = () => {
         <div class="quiz-completion">
             <div class="quiz-completion-trophy">🏆</div>
             <div class="quiz-completion-title">QUIZ COMPLETO!</div>
-            <div class="quiz-completion-score">${score}/${maxScore} PONTOS (${pct}%)</div>
+            <div class="quiz-completion-score">${formatAdventureScore(score)}/${formatAdventureScore(maxScore)} PONTOS (${pct}%)</div>
             ${earned.length > 0 ? `
                 <div class="quiz-completion-badges">
                     ${earned.map(b => `
@@ -609,6 +621,7 @@ const updateProgress = (stepIndex) => {
 const markProgressDot = (stepIndex, status) => {
     const dots = document.querySelectorAll('.quiz-pp');
     if (dots[stepIndex]) {
+        dots[stepIndex].classList.remove('correct', 'wrong');
         dots[stepIndex].classList.add(status);
     }
 };
