@@ -719,3 +719,73 @@ body.achievements-open {
         grid-template-columns: 92px minmax(0, 1fr);
     }
 }
+
+/* ============================================
+   V12 — conta obrigatória, sync e scroll refinado
+   ============================================ */
+.achievements-page,
+.achievements-shell,
+.achievements-content,
+.achievements-grid,
+.achievement-detail-panel {
+    overscroll-behavior: contain;
+}
+
+.achievements-grid,
+.achievement-detail-panel,
+.achievements-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(56, 189, 248, 0.48) rgba(15, 23, 42, 0.45);
+}
+
+.achievements-grid::-webkit-scrollbar,
+.achievement-detail-panel::-webkit-scrollbar,
+.achievements-content::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.achievements-grid::-webkit-scrollbar-thumb,
+.achievement-detail-panel::-webkit-scrollbar-thumb,
+.achievements-content::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.45);
+    border: 2px solid rgba(2, 6, 23, 0.8);
+    border-radius: 999px;
+}
+
+.achievements-grid::-webkit-scrollbar-track,
+.achievement-detail-panel::-webkit-scrollbar-track,
+.achievements-content::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.36);
+    border-radius: 999px;
+}
+
+.achievement-detail-panel {
+    padding-right: 4px;
+}
+
+.achievement-detail-card {
+    overflow-wrap: anywhere;
+}
+
+.achievements-sync-warning {
+    display: none;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(250, 204, 21, 0.1);
+    border: 1px solid rgba(250, 204, 21, 0.22);
+    color: #fde68a;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.achievements-sync-warning.active {
+    display: block;
+}
+
+@media (max-width: 820px), (max-width: 950px) and (orientation: landscape) {
+    .achievements-content {
+        -webkit-overflow-scrolling: touch;
+        max-height: none;
+    }
+}

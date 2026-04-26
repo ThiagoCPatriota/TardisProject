@@ -13,8 +13,8 @@
 // - A verificação padrão do projeto é uma continha simples, pensada para crianças.
 
 export const SUPABASE_CONFIG = {
-    url: 'COLE_AQUI_SUA_SUPABASE_PROJECT_URL',
-    anonKey: 'COLE_AQUI_SUA_SUPABASE_ANON_PUBLIC_KEY',
+    url: 'https://ivdptxkqvawjstprlxlm.supabase.co',
+    anonKey: 'sb_publishable_tkwZDIhC0ABw0NwFXxcFNw_0bYI-QWQ',
 
     // Verificação anti-spam simples para crianças.
     // Use 'math' para manter a continha básica no cadastro.

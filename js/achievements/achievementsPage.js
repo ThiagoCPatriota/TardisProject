@@ -1,6 +1,6 @@
 // ============================================
 // T.A.R.D.I.S. — Achievements Page
-// Primeira versão visual, responsiva e preparada para Supabase.
+// Página visual + conquistas vinculadas à conta Supabase.
 // ============================================
 import { ACHIEVEMENTS_DATA, ACHIEVEMENT_CATEGORIES, RARITY_META } from '../data/achievementsData.js';
 import {
@@ -10,7 +10,10 @@ import {
     getCompletionPercent,
     unlockAchievement,
     addAchievementProgress,
-    trackUniqueMetaItem
+    trackUniqueMetaItem,
+    setAchievementSession,
+    hasActiveAchievementUser,
+    getLastAchievementSyncError
 } from './achievementStore.js';
 import { getCurrentSession, onAuthStateChange } from '../auth/authService.js';
 
@@ -21,6 +24,8 @@ let activeCategory = 'Todas';
 let activeStatus = 'all';
 let selectedAchievementId = ACHIEVEMENTS_DATA[0]?.id || null;
 let toastTimer = null;
+let pendingOpenAfterLogin = false;
+let isOpeningPage = false;
 
 const STATUS_LABELS = {
     all: 'Todas',
@@ -63,11 +68,23 @@ const getFilteredAchievements = (state) => {
 
 const updateNavCount = (state = loadAchievementState()) => {
     const countEl = document.getElementById('badges-count');
-    if (countEl) countEl.textContent = getUnlockedCount(state);
+    if (!countEl) return;
+    countEl.textContent = hasActiveAchievementUser() ? getUnlockedCount(state) : 0;
+};
+
+const requestLoginForAchievements = () => {
+    pendingOpenAfterLogin = true;
+    document.dispatchEvent(new CustomEvent('tardis:auth-open', {
+        detail: {
+            mode: 'login',
+            message: 'Entre ou crie sua conta para visualizar e salvar suas conquistas.',
+            messageType: 'warning'
+        }
+    }));
 };
 
 const showAchievementToast = (achievement) => {
-    if (!achievement) return;
+    if (!achievement || !hasActiveAchievementUser()) return;
 
     let toast = document.getElementById('achievement-toast');
     if (!toast) {
@@ -100,6 +117,15 @@ const renderSummary = (state) => {
     page.querySelector('#achievements-summary-percent').textContent = `${percent}%`;
     page.querySelector('#achievements-summary-points').textContent = points;
     page.querySelector('#achievements-progress-fill').style.width = `${percent}%`;
+
+    const syncWarning = page.querySelector('#achievements-sync-warning');
+    const syncError = getLastAchievementSyncError();
+    if (syncWarning) {
+        syncWarning.classList.toggle('active', Boolean(syncError));
+        syncWarning.textContent = syncError
+            ? 'As conquistas estão em cache local nesta sessão. Verifique se a tabela user_achievements foi criada no Supabase.'
+            : '';
+    }
 };
 
 const renderFilters = () => {
@@ -223,12 +249,27 @@ const render = () => {
     updateNavCount(state);
 };
 
-const openPage = () => {
+const openPage = async () => {
+    if (isOpeningPage) return;
+    isOpeningPage = true;
+
+    const session = await getCurrentSession();
+    if (!session?.user) {
+        isOpeningPage = false;
+        requestLoginForAchievements();
+        return;
+    }
+
+    await setAchievementSession(session);
+    unlockAchievement('novo-explorador');
+    unlockAchievement('primeiro-salto');
     unlockAchievement('painel-de-bordo');
+
     page.classList.add('active');
     page.setAttribute('aria-hidden', 'false');
     document.body.classList.add('achievements-open');
     render();
+    isOpeningPage = false;
 
     setTimeout(() => {
         page.querySelector('#achievements-close')?.focus();
@@ -254,7 +295,7 @@ const createPage = () => {
                 <div class="achievements-title-block">
                     <span class="achievements-kicker">PAINEL DE BORDO</span>
                     <h1 id="achievements-title">Conquistas</h1>
-                    <p>Acompanhe suas descobertas e marcos como explorador espacial.</p>
+                    <p>Acompanhe suas descobertas e marcos como explorador espacial. Seu progresso fica salvo na sua conta.</p>
                 </div>
                 <button class="achievements-close" id="achievements-close" type="button" aria-label="Fechar conquistas">✕</button>
             </header>
@@ -277,6 +318,8 @@ const createPage = () => {
             <div class="achievements-progress-global" aria-label="Progresso geral das conquistas">
                 <div id="achievements-progress-fill"></div>
             </div>
+
+            <div class="achievements-sync-warning" id="achievements-sync-warning" role="status"></div>
 
             <nav class="achievements-filters" aria-label="Filtros de conquistas">
                 <div class="achievements-filter-row" id="achievements-category-filters"></div>
@@ -313,6 +356,14 @@ const wirePageEvents = () => {
     page.querySelector('#achievements-close')?.addEventListener('click', closePage);
     page.querySelector('.achievements-backdrop')?.addEventListener('click', closePage);
 
+    page.addEventListener('wheel', (event) => {
+        event.stopPropagation();
+    }, { passive: true });
+
+    page.addEventListener('touchmove', (event) => {
+        event.stopPropagation();
+    }, { passive: true });
+
     page.addEventListener('click', (event) => {
         const categoryButton = event.target.closest('[data-category]');
         if (categoryButton) {
@@ -347,14 +398,47 @@ const wirePageEvents = () => {
     });
 };
 
-const wireAchievementTriggers = async () => {
+const unlockSessionStartAchievements = () => {
+    if (!hasActiveAchievementUser()) return;
+    unlockAchievement('novo-explorador');
     unlockAchievement('primeiro-salto');
+};
 
+const wireAchievementTriggers = async () => {
     const session = await getCurrentSession();
-    if (session?.user) unlockAchievement('novo-explorador');
+    await setAchievementSession(session);
+    unlockSessionStartAchievements();
 
-    onAuthStateChange((_event, sessionData) => {
-        if (sessionData?.user) unlockAchievement('novo-explorador');
+    onAuthStateChange(async (_event, sessionData) => {
+        await setAchievementSession(sessionData);
+
+        if (sessionData?.user) {
+            unlockSessionStartAchievements();
+            if (pendingOpenAfterLogin) {
+                pendingOpenAfterLogin = false;
+                setTimeout(() => {
+                    window.TardisAuth?.close?.();
+                    openPage();
+                }, 300);
+            }
+        } else {
+            closePage();
+            updateNavCount(loadAchievementState());
+        }
+    });
+
+    window.addEventListener('tardis:auth-success', async (event) => {
+        const session = event.detail?.session || await getCurrentSession();
+        await setAchievementSession(session);
+        unlockSessionStartAchievements();
+
+        if (pendingOpenAfterLogin) {
+            pendingOpenAfterLogin = false;
+            setTimeout(() => {
+                window.TardisAuth?.close?.();
+                openPage();
+            }, 300);
+        }
     });
 
     window.addEventListener('tardis:achievements-updated', (event) => {
@@ -402,7 +486,8 @@ const initAchievements = async () => {
     window.TardisAchievements = {
         unlock: unlockAchievement,
         addProgress: addAchievementProgress,
-        open: openPage
+        open: openPage,
+        close: closePage
     };
 };
 

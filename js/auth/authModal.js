@@ -281,7 +281,11 @@ const showAccountView = (session) => {
     }
 };
 
-const openModal = async () => {
+const openModal = async (options = {}) => {
+    if (options.mode === 'login' || options.mode === 'signup') {
+        mode = options.mode;
+    }
+
     modal?.classList.add('active');
     document.body.classList.add('auth-modal-open');
 
@@ -291,6 +295,9 @@ const openModal = async () => {
 
     if (!session?.user) {
         await setMode(mode);
+        if (options.message) {
+            setMessage(options.message, options.messageType || 'warning');
+        }
         setTimeout(() => {
             const focusTarget = mode === 'signup'
                 ? modal?.querySelector(SELECTORS.explorerName)
@@ -328,6 +335,10 @@ const handleSubmit = async (event) => {
         updateNavSession(session);
         showAccountView(session);
         setMessage(mode === 'signup' ? 'Conta de explorador criada com sucesso!' : 'Login realizado com sucesso!', 'success');
+
+        window.dispatchEvent(new CustomEvent('tardis:auth-success', {
+            detail: { session, mode }
+        }));
     } catch (error) {
         setMessage(error.message || 'Não foi possível concluir a autenticação.', 'error');
         await resetCaptcha();
@@ -462,7 +473,7 @@ const setupNavButton = () => {
     }
 
     navAuthLabel = navProfile.querySelector('.nav-auth-label');
-    navProfile.addEventListener('click', openModal);
+    navProfile.addEventListener('click', () => openModal());
     navProfile.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
@@ -481,6 +492,16 @@ const initAuth = async () => {
     onAuthStateChange((_event, sessionData) => {
         updateNavSession(sessionData);
     });
+
+    document.addEventListener('tardis:auth-open', (event) => {
+        openModal(event.detail || {});
+    });
+
+    window.TardisAuth = {
+        open: openModal,
+        close: closeModal,
+        getSession: getCurrentSession
+    };
 
     if (!isSupabaseConfigured()) {
         console.info('[Auth] Supabase não configurado ainda. Preencha js/auth/supabaseConfig.js para ativar login/cadastro.');
