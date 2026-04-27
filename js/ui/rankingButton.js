@@ -11,6 +11,23 @@ let rankingStatus = null;
 let rankingSummary = null;
 let isLoadingRanking = false;
 
+let rankingRestoreTimer = null;
+
+const withTimeout = (promise, timeoutMs = 1800, fallback = null) => {
+    let timer = null;
+
+    return Promise.race([
+        promise,
+        new Promise((resolve) => {
+            timer = setTimeout(() => resolve(fallback), timeoutMs);
+        })
+    ]).finally(() => clearTimeout(timer));
+};
+
+const getCurrentSessionFast = async () => {
+    return withTimeout(getCurrentSession({ timeoutMs: 1600 }), 1800, null);
+};
+
 const escapeHTML = (value = '') => String(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -211,7 +228,7 @@ const loadAndRenderRanking = async () => {
     isLoadingRanking = true;
 
     try {
-        const session = await getCurrentSession();
+        const session = await getCurrentSessionFast();
 
         if (!session?.user) {
             closeRankingPage();
@@ -228,7 +245,7 @@ const loadAndRenderRanking = async () => {
         setStatus(rows.length ? '' : 'Ainda não há conquistas desbloqueadas suficientes para montar o ranking.', 'warning');
     } catch (error) {
         console.warn('[Ranking] Falha ao carregar ranking:', error?.message || error);
-        const session = await getCurrentSession();
+        const session = await getCurrentSessionFast();
         const fallbackRows = await getFallbackRanking(session);
         renderRanking(fallbackRows, session?.user?.id);
         setStatus('Não foi possível carregar o ranking do Supabase. Execute docs/SUPABASE_RANKING_SETUP.sql no SQL Editor e tente novamente.', 'error');
@@ -269,7 +286,7 @@ const openRankingFromNav = async (event) => {
     event?.stopPropagation?.();
     event?.stopImmediatePropagation?.();
 
-    const session = await getCurrentSession();
+    const session = await getCurrentSessionFast();
     if (!session?.user) {
         requestLoginForRanking();
         return;
@@ -319,6 +336,26 @@ const createRankingPage = () => {
     rankingSummary = rankingPage.querySelector('#ranking-summary');
 };
 
+const handleBrowserReturn = () => {
+    // Ao voltar do Google/outra página pelo histórico, o navegador pode restaurar
+    // a aba com requisições antigas congeladas. Liberamos travas e religamos a navbar.
+    isLoadingRanking = false;
+    bindRankingButton();
+
+    clearTimeout(rankingRestoreTimer);
+    rankingRestoreTimer = setTimeout(async () => {
+        try {
+            const session = await getCurrentSessionFast();
+            await ensureExplorerProfile(session);
+            if (rankingPage?.classList.contains('active') && session?.user) {
+                loadAndRenderRanking();
+            }
+        } catch (error) {
+            console.warn('[Ranking] Falha ao restaurar estado após retorno à página:', error?.message || error);
+        }
+    }, 80);
+};
+
 const bindRankingButton = () => {
     const rankingButton = document.getElementById('nav-ranking');
     if (!rankingButton) return;
@@ -358,9 +395,13 @@ const wireRankingEvents = () => {
 
     document.addEventListener('tardis:open-ranking', openRankingFromNav);
 
-    window.addEventListener('pageshow', () => {
-        bindRankingButton();
-        rankingPage?.classList.toggle('active', rankingPage?.getAttribute('aria-hidden') === 'false');
+    window.addEventListener('pageshow', handleBrowserReturn);
+    window.addEventListener('focus', handleBrowserReturn);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) handleBrowserReturn();
+    });
+    window.addEventListener('pagehide', () => {
+        isLoadingRanking = false;
     });
 
     rankingPage.querySelector('#ranking-close')?.addEventListener('click', closeRankingPage);
@@ -382,7 +423,7 @@ const wireRankingEvents = () => {
 };
 
 const syncProfileOnAuth = async () => {
-    const session = await getCurrentSession();
+    const session = await getCurrentSessionFast();
     await ensureExplorerProfile(session);
 
     onAuthStateChange(async (_event, sessionData) => {

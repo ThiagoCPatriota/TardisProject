@@ -453,6 +453,31 @@ const safeSetAchievementSession = async (session) => {
     }
 };
 
+const getCurrentSessionFast = async () => {
+    return withTimeout(getCurrentSession({ timeoutMs: 1600 }), 1800, null);
+};
+
+let restoreSyncTimer = null;
+
+const handleBrowserReturn = () => {
+    // Quando o usuário sai para outro site/app e volta pelo histórico ou bfcache,
+    // promessas antigas podem continuar pendentes. Liberamos travas e religamos a navbar.
+    isOpeningPage = false;
+    bindNavBadgesButton();
+
+    clearTimeout(restoreSyncTimer);
+    restoreSyncTimer = setTimeout(async () => {
+        try {
+            const session = await getCurrentSessionFast();
+            await safeSetAchievementSession(session);
+            updateNavCount(loadAchievementState());
+            if (page?.classList.contains('active')) render();
+        } catch (error) {
+            console.warn('[Achievements] Falha ao restaurar estado após retorno à página:', error?.message || error);
+        }
+    }, 80);
+};
+
 const closeRankingPageIfOpen = () => {
     window.TardisRanking?.close?.();
 
@@ -486,7 +511,7 @@ const openPage = async (options = {}) => {
     isOpeningPage = true;
 
     try {
-        const session = await getCurrentSession();
+        const session = await getCurrentSessionFast();
 
         if (!session?.user) {
             requestLoginForAchievements();
@@ -650,9 +675,13 @@ const wirePageEvents = () => {
         } : undefined);
     });
 
-    window.addEventListener('pageshow', () => {
-        bindNavBadgesButton();
-        page?.classList.toggle('active', page?.getAttribute('aria-hidden') === 'false');
+    window.addEventListener('pageshow', handleBrowserReturn);
+    window.addEventListener('focus', handleBrowserReturn);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) handleBrowserReturn();
+    });
+    window.addEventListener('pagehide', () => {
+        isOpeningPage = false;
     });
 
     page.querySelector('#achievements-close')?.addEventListener('click', closePage);
@@ -710,8 +739,8 @@ const unlockSessionStartAchievements = () => {
 };
 
 const wireAchievementTriggers = async () => {
-    const session = await getCurrentSession();
-    await setAchievementSession(session);
+    const session = await getCurrentSessionFast();
+    await safeSetAchievementSession(session);
     unlockSessionStartAchievements();
 
     onAuthStateChange(async (_event, sessionData) => {
@@ -733,7 +762,7 @@ const wireAchievementTriggers = async () => {
     });
 
     window.addEventListener('tardis:auth-success', async (event) => {
-        const session = event.detail?.session || await getCurrentSession();
+        const session = event.detail?.session || await getCurrentSessionFast();
         await safeSetAchievementSession(session);
         unlockSessionStartAchievements();
 
