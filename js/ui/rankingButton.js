@@ -237,8 +237,20 @@ const loadAndRenderRanking = async () => {
     }
 };
 
+const closeAchievementsPageIfOpen = () => {
+    window.TardisAchievements?.close?.();
+
+    // Defesa extra: caso o módulo de conquistas ainda não tenha exposto a API
+    // ou algum estado antigo tenha ficado preso após navegar/voltar no browser.
+    const achievementsPage = document.getElementById('achievements-page');
+    achievementsPage?.classList.remove('active');
+    achievementsPage?.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('achievements-open');
+};
+
 function openRankingPage() {
     if (!rankingPage) return;
+    closeAchievementsPageIfOpen();
     rankingPage.classList.add('active');
     rankingPage.setAttribute('aria-hidden', 'false');
     document.body.classList.add('ranking-open');
@@ -251,6 +263,20 @@ function closeRankingPage() {
     rankingPage.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('ranking-open');
 }
+
+const openRankingFromNav = async (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    event?.stopImmediatePropagation?.();
+
+    const session = await getCurrentSession();
+    if (!session?.user) {
+        requestLoginForRanking();
+        return;
+    }
+
+    openRankingPage();
+};
 
 const createRankingPage = () => {
     rankingPage = document.createElement('div');
@@ -293,27 +319,48 @@ const createRankingPage = () => {
     rankingSummary = rankingPage.querySelector('#ranking-summary');
 };
 
-const wireRankingEvents = () => {
+const bindRankingButton = () => {
     const rankingButton = document.getElementById('nav-ranking');
+    if (!rankingButton) return;
 
-    rankingButton?.addEventListener('click', async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
+    rankingButton.setAttribute('role', 'button');
+    rankingButton.setAttribute('tabindex', '0');
+    rankingButton.setAttribute('aria-label', 'Abrir ranking dos exploradores');
 
-        const session = await getCurrentSession();
-        if (!session?.user) {
-            requestLoginForRanking();
-            return;
-        }
+    if (rankingButton.dataset.rankingBound === 'true') return;
+    rankingButton.dataset.rankingBound = 'true';
 
-        openRankingPage();
-    });
-
-    rankingButton?.addEventListener('keydown', (event) => {
+    rankingButton.addEventListener('click', openRankingFromNav);
+    rankingButton.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            rankingButton.click();
+            openRankingFromNav(event);
         }
+    });
+};
+
+const wireRankingEvents = () => {
+    bindRankingButton();
+
+    // Listener delegado e capturado: se outro módulo recriar a navbar, se o usuário
+    // navegar e voltar pelo bfcache, ou se o listener direto for perdido, o botão
+    // continua funcionando.
+    document.addEventListener('click', (event) => {
+        const rankingButton = event.target.closest?.('#nav-ranking');
+        if (!rankingButton) return;
+        openRankingFromNav(event);
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+        const rankingButton = event.target.closest?.('#nav-ranking');
+        if (!rankingButton || (event.key !== 'Enter' && event.key !== ' ')) return;
+        openRankingFromNav(event);
+    }, true);
+
+    document.addEventListener('tardis:open-ranking', openRankingFromNav);
+
+    window.addEventListener('pageshow', () => {
+        bindRankingButton();
+        rankingPage?.classList.toggle('active', rankingPage?.getAttribute('aria-hidden') === 'false');
     });
 
     rankingPage.querySelector('#ranking-close')?.addEventListener('click', closeRankingPage);
@@ -351,8 +398,10 @@ const initRanking = async () => {
 
     window.TardisRanking = {
         open: openRankingPage,
+        openFromNav: openRankingFromNav,
         close: closeRankingPage,
-        refresh: loadAndRenderRanking
+        refresh: loadAndRenderRanking,
+        rebindButton: bindRankingButton
     };
 };
 

@@ -453,8 +453,20 @@ const safeSetAchievementSession = async (session) => {
     }
 };
 
+const closeRankingPageIfOpen = () => {
+    window.TardisRanking?.close?.();
+
+    // Defesa extra: se o módulo de ranking ainda não terminou de inicializar
+    // ou se o navegador voltou de outra página com estado visual preso.
+    const rankingPage = document.getElementById('ranking-page');
+    rankingPage?.classList.remove('active');
+    rankingPage?.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('ranking-open');
+};
+
 const openPage = async (options = {}) => {
     if (isOpeningPage) return;
+    closeRankingPageIfOpen();
 
     const normalizedOptions = typeof options === 'string'
         ? { achievementId: options, resetFilters: true, scrollToAchievement: true }
@@ -582,42 +594,66 @@ const createPage = () => {
     detailPanel = page.querySelector('#achievement-detail-panel');
 };
 
-const wireNavBadgesButton = () => {
-    const navBadges = document.getElementById('nav-badges');
-    if (!navBadges || navBadges.dataset.achievementsBound === 'true') return;
+const openAchievementsFromNav = (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    event?.stopImmediatePropagation?.();
+    openPage();
+};
 
-    navBadges.dataset.achievementsBound = 'true';
+const bindNavBadgesButton = () => {
+    const navBadges = document.getElementById('nav-badges');
+    if (!navBadges) return;
+
     navBadges.setAttribute('role', 'button');
     navBadges.setAttribute('tabindex', '0');
     navBadges.setAttribute('aria-label', 'Abrir conquistas');
 
-    navBadges.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        openPage();
-    });
+    if (navBadges.dataset.achievementsBound === 'true') return;
+    navBadges.dataset.achievementsBound = 'true';
 
+    navBadges.addEventListener('click', openAchievementsFromNav);
     navBadges.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            openPage();
+            openAchievementsFromNav(event);
         }
     });
 };
 
-const wirePageEvents = () => {
-    wireNavBadgesButton();
+// Mantém compatibilidade com patches anteriores que chamavam esse nome.
+const wireNavBadgesButton = bindNavBadgesButton;
 
-    // Fallback defensivo: se a navbar for alterada por outro módulo no futuro,
-    // esse listener delegado continua abrindo as conquistas.
+const wirePageEvents = () => {
+    bindNavBadgesButton();
+
+    // Listener delegado e capturado: se outro módulo recriar a navbar, se o usuário
+    // navegar e voltar pelo bfcache, ou se o listener direto for perdido, o botão
+    // continua funcionando.
     document.addEventListener('click', (event) => {
         const navBadges = event.target.closest?.('#nav-badges');
         if (!navBadges) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-        openPage();
+        openAchievementsFromNav(event);
     }, true);
+
+    document.addEventListener('keydown', (event) => {
+        const navBadges = event.target.closest?.('#nav-badges');
+        if (!navBadges || (event.key !== 'Enter' && event.key !== ' ')) return;
+        openAchievementsFromNav(event);
+    }, true);
+
+    document.addEventListener('tardis:open-achievements', (event) => {
+        const achievementId = event.detail?.achievementId;
+        openPage(achievementId ? {
+            achievementId,
+            resetFilters: true,
+            scrollToAchievement: true
+        } : undefined);
+    });
+
+    window.addEventListener('pageshow', () => {
+        bindNavBadgesButton();
+        page?.classList.toggle('active', page?.getAttribute('aria-hidden') === 'false');
+    });
 
     page.querySelector('#achievements-close')?.addEventListener('click', closePage);
     page.querySelector('.achievements-backdrop')?.addEventListener('click', closePage);
@@ -852,7 +888,7 @@ const initAchievements = async () => {
         inspect: (achievementId) => openPage({ achievementId, resetFilters: true, scrollToAchievement: true }),
         close: closePage,
         render,
-        rebindButton: wireNavBadgesButton
+        rebindButton: bindNavBadgesButton
     };
 };
 
