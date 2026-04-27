@@ -17,7 +17,34 @@ var currentFPS = 0;
 var fpsHistory = [];
 var FPS_HISTORY_LENGTH = 60;
 var FPS_UPDATE_INTERVAL = 500; // ms
-var isVisible = true;
+var FPS_STORAGE_KEY = 'tardis_fps_monitor_visible';
+var isVisible = localStorage.getItem(FPS_STORAGE_KEY) !== 'false';
+
+export function isFPSMonitorVisible() {
+    return isVisible;
+}
+
+export function setFPSMonitorVisible(nextVisible, options = {}) {
+    isVisible = Boolean(nextVisible);
+
+    if (options.persist !== false) {
+        localStorage.setItem(FPS_STORAGE_KEY, isVisible ? 'true' : 'false');
+    }
+
+    if (fpsContainer) {
+        fpsContainer.style.display = isVisible ? 'block' : 'none';
+    }
+
+    window.dispatchEvent(new CustomEvent('tardis:fps-visibility-changed', {
+        detail: { visible: isVisible }
+    }));
+
+    return isVisible;
+}
+
+export function toggleFPSMonitor() {
+    return setFPSMonitorVisible(!isVisible);
+}
 
 /**
  * Create the FPS monitor DOM elements and keyboard toggle.
@@ -28,6 +55,17 @@ export function initFPSMonitor() {
     fpsContainer.id = 'fps-monitor';
     fpsContainer.innerHTML = buildMonitorHTML();
     document.getElementById('ui-layer').appendChild(fpsContainer);
+    setFPSMonitorVisible(isVisible, { persist: false });
+
+    window.TardisFPS = {
+        setVisible: setFPSMonitorVisible,
+        toggle: toggleFPSMonitor,
+        isVisible: isFPSMonitorVisible
+    };
+
+    window.addEventListener('tardis:fps-set-visible', function (event) {
+        setFPSMonitorVisible(Boolean(event.detail?.visible));
+    });
 
     // Cache references
     fpsValueEl = document.getElementById('fps-value');
@@ -86,13 +124,8 @@ function buildMonitorHTML() {
 
 /**
  * Toggle visibility of the FPS monitor.
+ * A função pública acima também persiste a preferência do explorador.
  */
-function toggleFPSMonitor() {
-    isVisible = !isVisible;
-    if (fpsContainer) {
-        fpsContainer.style.display = isVisible ? 'block' : 'none';
-    }
-}
 
 /**
  * Update the FPS counter. Called every frame from animate().

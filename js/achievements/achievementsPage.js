@@ -187,6 +187,57 @@ const requestLoginForAchievements = () => {
     }));
 };
 
+const achievementExists = (achievementId) => ACHIEVEMENTS_DATA.some((achievement) => achievement.id === achievementId);
+
+const getAchievementById = (achievementId) => ACHIEVEMENTS_DATA.find((achievement) => achievement.id === achievementId) || null;
+
+const resetAchievementViewFilters = () => {
+    activeCategory = 'Todas';
+    activeStatus = 'all';
+    searchTerm = '';
+
+    const searchInput = page?.querySelector('#achievements-search-input');
+    if (searchInput) searchInput.value = '';
+};
+
+const escapeCSSSelector = (value = '') => {
+    if (window.CSS?.escape) return CSS.escape(value);
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+};
+
+const scrollSelectedAchievementIntoView = () => {
+    if (!page || !selectedAchievementId) return;
+
+    requestAnimationFrame(() => {
+        const selectedCard = page.querySelector(`[data-achievement-id="${escapeCSSSelector(selectedAchievementId)}"]`);
+        if (!selectedCard) return;
+
+        selectedCard.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        selectedCard.focus?.({ preventScroll: true });
+
+        selectedCard.classList.add('achievement-card-inspected');
+        window.setTimeout(() => selectedCard.classList.remove('achievement-card-inspected'), 1600);
+    });
+};
+
+const inspectAchievement = (achievementId, options = {}) => {
+    if (!achievementExists(achievementId)) return false;
+
+    selectedAchievementId = achievementId;
+
+    if (options.resetFilters) {
+        resetAchievementViewFilters();
+    }
+
+    render();
+
+    if (options.scroll !== false) {
+        scrollSelectedAchievementIntoView();
+    }
+
+    return true;
+};
+
 const showAchievementToast = (achievement) => {
     if (!achievement || !hasActiveAchievementUser()) return;
 
@@ -198,17 +249,42 @@ const showAchievementToast = (achievement) => {
         document.body.appendChild(toast);
     }
 
+    toast.dataset.achievementId = achievement.id;
+    toast.setAttribute('role', 'button');
+    toast.setAttribute('tabindex', '0');
+    toast.setAttribute('aria-label', `Abrir detalhes da conquista ${achievement.title}`);
+    toast.title = 'Clique para ver essa conquista no painel';
     toast.innerHTML = `
         <img src="${achievement.image}" alt="" class="achievement-toast-img">
         <div class="achievement-toast-copy">
             <span>Conquista desbloqueada</span>
             <strong>${escapeHTML(achievement.title)}</strong>
+            <small>Clique para ver detalhes</small>
         </div>
     `;
 
+    if (toast.dataset.bound !== 'true') {
+        toast.dataset.bound = 'true';
+
+        const openToastAchievement = () => {
+            const achievementId = toast.dataset.achievementId;
+            if (!achievementId) return;
+            toast.classList.remove('active');
+            openPage({ achievementId, resetFilters: true, scrollToAchievement: true });
+        };
+
+        toast.addEventListener('click', openToastAchievement);
+        toast.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openToastAchievement();
+            }
+        });
+    }
+
     toast.classList.add('active');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('active'), 4200);
+    toastTimer = setTimeout(() => toast.classList.remove('active'), 6000);
 };
 
 const renderSummary = (state) => {
@@ -377,8 +453,24 @@ const safeSetAchievementSession = async (session) => {
     }
 };
 
-const openPage = async () => {
+const openPage = async (options = {}) => {
     if (isOpeningPage) return;
+
+    const normalizedOptions = typeof options === 'string'
+        ? { achievementId: options, resetFilters: true, scrollToAchievement: true }
+        : (options || {});
+
+    const achievementToInspect = normalizedOptions.achievementId && achievementExists(normalizedOptions.achievementId)
+        ? normalizedOptions.achievementId
+        : null;
+
+    if (achievementToInspect) {
+        selectedAchievementId = achievementToInspect;
+        if (normalizedOptions.resetFilters) {
+            resetAchievementViewFilters();
+        }
+    }
+
     isOpeningPage = true;
 
     try {
@@ -401,8 +493,19 @@ const openPage = async () => {
         handleAchievementsPanelOpened();
         render();
 
+        if (achievementToInspect) {
+            inspectAchievement(achievementToInspect, {
+                resetFilters: false,
+                scroll: normalizedOptions.scrollToAchievement !== false
+            });
+        }
+
         setTimeout(() => {
-            page.querySelector('#achievements-close')?.focus();
+            if (achievementToInspect) {
+                scrollSelectedAchievementIntoView();
+            } else {
+                page.querySelector('#achievements-close')?.focus();
+            }
         }, 50);
     } catch (error) {
         console.error('[Achievements] Falha ao abrir painel:', error);
@@ -746,6 +849,7 @@ const initAchievements = async () => {
         unlock: unlockAchievement,
         addProgress: addAchievementProgress,
         open: openPage,
+        inspect: (achievementId) => openPage({ achievementId, resetFilters: true, scrollToAchievement: true }),
         close: closePage,
         render,
         rebindButton: wireNavBadgesButton

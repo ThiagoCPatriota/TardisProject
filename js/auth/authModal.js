@@ -11,6 +11,7 @@ import {
     getCurrentSession,
     onAuthStateChange
 } from './authService.js';
+import { isFPSMonitorVisible, setFPSMonitorVisible } from '../ui/fpsMonitor.js';
 
 let mode = 'signup';
 let modal = null;
@@ -88,6 +89,12 @@ const getExplorerName = (user) => {
 const getDisplayName = (user) => {
     const explorerName = getExplorerName(user);
     return explorerName || getEmailPreview(user?.email || '');
+};
+
+const syncFPSPreferenceToggle = () => {
+    const fpsToggle = modal?.querySelector('#auth-fps-toggle');
+    if (!fpsToggle) return;
+    fpsToggle.checked = isFPSMonitorVisible();
 };
 
 const setMessage = (text, type = 'warning') => {
@@ -321,6 +328,7 @@ const showAccountView = (session) => {
 
     if (accountExplorerName) accountExplorerName.textContent = user ? getDisplayName(user) : '';
     if (accountEmail) accountEmail.textContent = user?.email || '';
+    syncFPSPreferenceToggle();
 
     const title = modal?.querySelector('#auth-title');
     const subtitle = modal?.querySelector('#auth-subtitle');
@@ -428,6 +436,20 @@ const createModal = () => {
                     <span class="auth-kicker">SESSÃO ATIVA</span>
                     <div class="auth-account-name" id="auth-account-name"></div>
                     <div class="auth-account-email" id="auth-account-email"></div>
+
+                    <div class="auth-preferences" aria-label="Preferências do explorador">
+                        <label class="auth-pref-row" for="auth-fps-toggle">
+                            <span class="auth-pref-copy">
+                                <strong>Monitor de FPS</strong>
+                                <small>Exibir painel de desempenho na tela.</small>
+                            </span>
+                            <span class="auth-switch">
+                                <input id="auth-fps-toggle" type="checkbox">
+                                <span class="auth-switch-track" aria-hidden="true"></span>
+                            </span>
+                        </label>
+                    </div>
+
                     <button class="auth-logout" id="auth-logout" type="button">SAIR DA CONTA</button>
                 </div>
 
@@ -507,6 +529,13 @@ const createModal = () => {
             setMessage(error.message || 'Não foi possível sair da conta.', 'error');
         }
     });
+
+    modal.querySelector('#auth-fps-toggle')?.addEventListener('change', (event) => {
+        setFPSMonitorVisible(event.target.checked);
+    });
+
+    window.addEventListener('tardis:fps-visibility-changed', syncFPSPreferenceToggle);
+
     modal.querySelector('#auth-resend-confirmation')?.addEventListener('click', async () => {
         const email = normalizeEmail(modal.querySelector(SELECTORS.email)?.value || '');
 
