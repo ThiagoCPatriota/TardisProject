@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="T.A.R.D.I.S. — Explore o Sistema Solar interativamente. Texturas 8K, dados da NASA e modo aventura gamificado.">
+  <meta name="description"
+    content="T.A.R.D.I.S. — Explore o Sistema Solar interativamente. Texturas 8K, dados da NASA e modo aventura gamificado.">
   <title>T.A.R.D.I.S. — Solar System</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap"
+    rel="stylesheet">
 
   <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/layout.css">
@@ -23,19 +27,23 @@
   <link rel="stylesheet" href="css/ranking.css">
   <link rel="stylesheet" href="css/central.css">
 </head>
+
 <body>
   <!-- Loading Screen -->
   <div id="loading">
     <div class="loading-content">
       <div class="loading-logo">T.A.R.D.I.S.</div>
       <div class="loading-version">TIME AND RELATIVE DIMENSION IN SPACE</div>
-      <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+      <div class="loading-bar">
+        <div class="loading-bar-fill"></div>
+      </div>
       <div class="loading-status" id="loading-status">INICIALIZANDO SISTEMAS...</div>
     </div>
   </div>
 
   <!-- Mobile orientation recommendation -->
-  <div id="orientation-lock" role="dialog" aria-labelledby="orientation-title" aria-describedby="orientation-description">
+  <div id="orientation-lock" role="dialog" aria-labelledby="orientation-title"
+    aria-describedby="orientation-description">
     <div class="orientation-card">
       <div class="orientation-icon" aria-hidden="true">↻</div>
       <h2 id="orientation-title">Vire seu dispositivo</h2>
@@ -73,13 +81,15 @@
 
       <div class="nav-right nav-right-central">
         <div class="central-nav" id="central-nav">
-          <button class="nav-action-btn nav-central-toggle" id="nav-central" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="central-menu" title="Abrir Central T.A.R.D.I.S.">
+          <button class="nav-action-btn nav-central-toggle" id="nav-central" type="button" aria-haspopup="menu"
+            aria-expanded="false" aria-controls="central-menu" title="Abrir Central T.A.R.D.I.S.">
             <span class="nav-action-icon nav-central-icon">☰</span>
             <span class="nav-action-text nav-central-label">Central</span>
           </button>
 
           <div class="central-menu" id="central-menu" role="menu" aria-label="Central T.A.R.D.I.S.">
-            <button class="central-menu-item nav-profile" id="nav-profile" type="button" role="menuitem" title="Entrar ou abrir perfil">
+            <button class="central-menu-item nav-profile" id="nav-profile" type="button" role="menuitem"
+              title="Entrar ou abrir perfil">
               <span class="nav-action-icon nav-profile-icon">👤</span>
               <span class="central-menu-copy">
                 <strong class="nav-auth-label">Perfil</strong>
@@ -87,7 +97,8 @@
               </span>
             </button>
 
-            <button class="central-menu-item nav-badges" id="nav-badges" type="button" role="menuitem" title="Ver conquistas">
+            <button class="central-menu-item nav-badges" id="nav-badges" type="button" role="menuitem"
+              title="Ver conquistas">
               <span class="nav-action-icon nav-badges-icon">🏅</span>
               <span class="central-menu-copy">
                 <strong>Conquistas</strong>
@@ -96,7 +107,8 @@
               <span class="nav-badges-count" id="badges-count">0</span>
             </button>
 
-            <button class="central-menu-item nav-ranking" id="nav-ranking" type="button" role="menuitem" title="Ver ranking dos exploradores">
+            <button class="central-menu-item nav-ranking" id="nav-ranking" type="button" role="menuitem"
+              title="Ver ranking dos exploradores">
               <span class="nav-action-icon nav-ranking-icon">🏆</span>
               <span class="central-menu-copy">
                 <strong>Ranking</strong>
@@ -104,13 +116,13 @@
               </span>
             </button>
 
-            <button class="central-menu-item nav-shop" id="nav-shop" type="button" role="menuitem" title="Abrir Loja Cósmica">
+            <button class="central-menu-item nav-shop" id="nav-shop" type="button" role="menuitem"
+              title="Abrir Loja Cósmica">
               <span class="nav-action-icon nav-shop-icon">🛸</span>
               <span class="central-menu-copy">
                 <strong>Loja Cósmica</strong>
                 <small>Fragmentos Estelares</small>
               </span>
-              <span class="central-menu-pill">EM BREVE</span>
             </button>
           </div>
         </div>
@@ -120,7 +132,8 @@
     <!-- Controls Panel -->
     <div id="controls-summary">
       <div class="control-header">CONTROLES</div>
-      <div class="control-item"><span class="control-icon">🖱️</span><span class="key-desc">ARRASTAR: Rotacionar</span></div>
+      <div class="control-item"><span class="control-icon">🖱️</span><span class="key-desc">ARRASTAR: Rotacionar</span>
+      </div>
       <div class="control-item"><span class="control-icon">🔍</span><span class="key-desc">SCROLL: Zoom</span></div>
       <div class="control-divider"></div>
       <div class="control-item"><span class="control-icon">⌨️</span><span class="key-desc">SETAS: Navegar</span></div>
@@ -253,4 +266,5 @@
   <script type="module" src="js/achievements/achievementsPage.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
+
 </html>
