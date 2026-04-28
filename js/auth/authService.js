@@ -4,6 +4,7 @@
 // ============================================
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_CONFIG, isSupabaseConfigured } from './supabaseConfig.js';
+import { DEFAULT_AVATAR, normalizeAvatar } from '../avatar/avatarData.js';
 
 const storage = SUPABASE_CONFIG.persistOnlyCurrentTab ? window.sessionStorage : window.localStorage;
 
@@ -79,17 +80,19 @@ const ensureConfigured = () => {
     }
 };
 
-export const signUpWithEmail = async ({ email, password, explorerName = '', captchaToken = null }) => {
+export const signUpWithEmail = async ({ email, password, explorerName = '', avatar = DEFAULT_AVATAR, captchaToken = null }) => {
     ensureConfigured();
 
     const cleanEmail = normalizeEmail(email);
     const cleanExplorerName = explorerName.trim().replace(/\s+/g, ' ');
+    const cleanAvatar = normalizeAvatar(avatar);
 
     const options = {
         emailRedirectTo: SUPABASE_CONFIG.authRedirectTo,
         data: {
             explorer_name: cleanExplorerName,
-            display_name: cleanExplorerName
+            display_name: cleanExplorerName,
+            avatar: cleanAvatar
         }
     };
 
@@ -103,19 +106,16 @@ export const signUpWithEmail = async ({ email, password, explorerName = '', capt
 
     if (error) {
         if (isAlreadyRegisteredError(error)) {
-            const loginData = await signInWithEmail({ email: cleanEmail, password });
-            return { ...loginData, existingAccount: true };
+            throw new Error('Essa conta já existe. Use a aba Login para entrar com esse e-mail.');
         }
 
         throw error;
     }
 
-    // Em alguns fluxos do Supabase, tentar cadastrar um e-mail que já existe
-    // retorna um usuário sem sessão e sem identities para evitar enumeração de contas.
-    // Para o UX do T.A.R.D.I.S., se a senha estiver correta, tratamos isso como login.
+    // O Supabase pode retornar user sem sessão/identities quando o e-mail já existe.
+    // Cadastro não deve logar automaticamente em uma conta existente.
     if (isExistingAccountResponse(data)) {
-        const loginData = await signInWithEmail({ email: cleanEmail, password });
-        return { ...loginData, existingAccount: true };
+        throw new Error('Essa conta já existe. Use a aba Login para continuar.');
     }
 
     rememberSession(data?.session || null);
