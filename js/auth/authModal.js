@@ -12,8 +12,6 @@ import {
     onAuthStateChange
 } from './authService.js';
 import { isFPSMonitorVisible, setFPSMonitorVisible } from '../ui/fpsMonitor.js';
-import { DEFAULT_AVATAR, AVATAR_OPTIONS, normalizeAvatar, getAvatarOption } from '../avatar/avatarData.js';
-import { renderAvatarInto, renderAvatarPreviewHTML } from '../avatar/avatarRenderer.js';
 
 let mode = 'signup';
 let modal = null;
@@ -34,10 +32,6 @@ let navAuthLabel = null;
 let turnstileWidgetId = null;
 let captchaToken = null;
 let localChallengeAnswer = null;
-let signupStep = 'account';
-let selectedAvatar = normalizeAvatar(DEFAULT_AVATAR);
-let accountStepValidated = false;
-let accountAvatarPreview = null;
 
 const SELECTORS = {
     explorerName: '#auth-explorer-name',
@@ -50,118 +44,6 @@ const SELECTORS = {
 const cleanExplorerName = (name = '') => name.trim().replace(/\s+/g, ' ');
 
 const normalizeEmail = (email = '') => email.trim().toLowerCase();
-
-const getSignupAccountData = () => ({
-    explorerName: cleanExplorerName(modal?.querySelector(SELECTORS.explorerName)?.value || ''),
-    email: normalizeEmail(modal?.querySelector(SELECTORS.email)?.value || ''),
-    password: modal?.querySelector(SELECTORS.password)?.value || '',
-    confirm: modal?.querySelector(SELECTORS.confirm)?.value || ''
-});
-
-const getAvatarLabel = (group, id) => getAvatarOption(group, id)?.label || 'Padrão';
-
-const updateAvatarPreview = () => {
-    const preview = modal?.querySelector('#auth-avatar-preview');
-    const confirmPreview = modal?.querySelector('#auth-confirm-avatar-preview');
-
-    renderAvatarInto(preview, selectedAvatar, { label: 'Explorador básico' });
-    renderAvatarInto(confirmPreview, selectedAvatar, { compact: false });
-
-    const summaryName = modal?.querySelector('#auth-confirm-name');
-    const summaryEmail = modal?.querySelector('#auth-confirm-email');
-    const summarySuit = modal?.querySelector('#auth-confirm-suit');
-    const summaryHair = modal?.querySelector('#auth-confirm-hair');
-    const summaryAccessory = modal?.querySelector('#auth-confirm-accessory');
-    const account = getSignupAccountData();
-
-    if (summaryName) summaryName.textContent = account.explorerName || 'Explorador';
-    if (summaryEmail) summaryEmail.textContent = account.email || 'e-mail ainda não informado';
-    if (summarySuit) summarySuit.textContent = getAvatarLabel('suit', selectedAvatar.suit);
-    if (summaryHair) summaryHair.textContent = selectedAvatar.hair === 'none'
-        ? 'Capacete limpo'
-        : `${getAvatarLabel('hair', selectedAvatar.hair)} · ${getAvatarLabel('hairColor', selectedAvatar.hairColor)}`;
-    if (summaryAccessory) summaryAccessory.textContent = getAvatarLabel('accessory', selectedAvatar.accessory);
-};
-
-const renderAvatarChoices = () => {
-    const container = modal?.querySelector('#auth-avatar-options');
-    if (!container) return;
-
-    const renderButton = (group, option, extraClass = '') => {
-        const value = option.id ?? 'none';
-        const isActive = (selectedAvatar[group] ?? null) === option.id || (option.id === null && selectedAvatar[group] === null);
-        const style = option.color ? ` style="--swatch-color:${option.color}"` : '';
-        const label = option.label || value;
-        const swatchTitle = option.color ? ` title="${label}" aria-label="${label}"` : '';
-        return `<button class="avatar-choice ${extraClass} ${isActive ? 'active' : ''}" data-avatar-group="${group}" data-avatar-value="${value}" type="button"${style}${swatchTitle}>${option.color ? '' : label}</button>`;
-    };
-
-    container.innerHTML = `
-        <div class="avatar-option-group">
-            <span>Tom de pele</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.skin.map((option) => renderButton('skin', option, 'avatar-swatch')).join('')}</div>
-        </div>
-        <div class="avatar-option-group">
-            <span>Traje inicial</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.suit.map((option) => renderButton('suit', option)).join('')}</div>
-        </div>
-        <div class="avatar-option-group">
-            <span>Cabelo</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.hair.map((option) => renderButton('hair', option)).join('')}</div>
-        </div>
-        <div class="avatar-option-group">
-            <span>Cor do cabelo</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.hairColor.map((option) => renderButton('hairColor', option, 'avatar-swatch')).join('')}</div>
-        </div>
-        <div class="avatar-option-group">
-            <span>Acessório inicial</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.accessory.map((option) => renderButton('accessory', option)).join('')}</div>
-        </div>
-    `;
-};
-
-const syncSignupStepUI = () => {
-    const isSignupMode = mode === 'signup';
-    modal?.querySelector('.auth-panel')?.classList.toggle('avatar-flow-active', isSignupMode);
-    modal?.querySelector('#auth-signup-steps')?.classList.toggle('auth-hidden', !isSignupMode);
-
-    modal?.querySelectorAll('[data-auth-step-panel]').forEach((panel) => {
-        const shouldShow = !isSignupMode
-            ? panel.dataset.authStepPanel === 'account'
-            : panel.dataset.authStepPanel === signupStep;
-        panel.classList.toggle('active', shouldShow);
-    });
-
-    modal?.querySelectorAll('[data-signup-step]').forEach((pill) => {
-        pill.classList.toggle('active', isSignupMode && pill.dataset.signupStep === signupStep);
-    });
-
-    const backButton = modal?.querySelector('#auth-back-step');
-    backButton?.classList.toggle('auth-hidden', !isSignupMode || signupStep === 'account');
-
-    updateAvatarPreview();
-    setLoading(false);
-};
-
-const setSignupStep = (step) => {
-    signupStep = step;
-    syncSignupStepUI();
-};
-
-const resetSignupWizard = () => {
-    signupStep = 'account';
-    accountStepValidated = false;
-    selectedAvatar = normalizeAvatar(DEFAULT_AVATAR);
-    renderAvatarChoices();
-    syncSignupStepUI();
-};
-
-const goBackSignupStep = () => {
-    if (mode !== 'signup') return;
-    if (signupStep === 'confirm') setSignupStep('avatar');
-    else if (signupStep === 'avatar') setSignupStep('account');
-};
-
 
 const getAuthFriendlyMessage = (error, context = {}) => {
     const rawMessage = error?.message || 'Não foi possível concluir a autenticação.';
@@ -239,19 +121,12 @@ const clearMessage = () => {
     modal?.querySelector('#auth-resend-confirmation')?.classList.add('auth-hidden');
 };
 
-const getSubmitLabel = () => {
-    if (mode !== 'signup') return 'ENTRAR';
-    if (signupStep === 'account') return 'CONTINUAR';
-    if (signupStep === 'avatar') return 'REVISAR EXPLORADOR';
-    return 'COMEÇAR MISSÃO';
-};
-
 const setLoading = (isLoading) => {
     if (!submitButton) return;
     submitButton.disabled = isLoading;
     submitButton.textContent = isLoading
-        ? (mode === 'signup' ? 'CRIANDO EXPLORADOR...' : 'ENTRANDO...')
-        : getSubmitLabel();
+        ? (mode === 'signup' ? 'CRIANDO CONTA...' : 'ENTRANDO...')
+        : (mode === 'signup' ? 'CRIAR CONTA' : 'ENTRAR');
 };
 
 const createLocalChallenge = () => {
@@ -383,23 +258,22 @@ const setMode = async (nextMode) => {
         passwordInput.autocomplete = isSignupMode ? 'new-password' : 'current-password';
     }
 
-    if (title) title.textContent = isSignupMode ? 'Criar Explorador' : 'Entrar';
+    if (title) title.textContent = isSignupMode ? 'Criar conta' : 'Entrar';
     if (subtitle) {
         subtitle.textContent = isSignupMode
-            ? 'Crie sua conta, monte seu avatar inicial e comece sua missão pelo Sistema Solar.'
+            ? 'Escolha seu Nome de Explorador, e-mail, senha e resolva uma continha rápida.'
             : 'Entre com o e-mail e senha da sua conta T.A.R.D.I.S.';
     }
 
-    if (isSignupMode && signupStep !== 'account') {
-        signupStep = 'account';
-    }
-
-    syncSignupStepUI();
+    setLoading(false);
     await renderCaptcha();
 };
 
-const validateForm = ({ skipCaptcha = false } = {}) => {
-    const { explorerName, email, password, confirm } = getSignupAccountData();
+const validateForm = () => {
+    const explorerName = cleanExplorerName(modal.querySelector(SELECTORS.explorerName)?.value || '');
+    const email = normalizeEmail(modal.querySelector(SELECTORS.email)?.value || '');
+    const password = modal.querySelector(SELECTORS.password)?.value || '';
+    const confirm = modal.querySelector(SELECTORS.confirm)?.value || '';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const explorerNameRegex = /^[\p{L}\p{N} _.-]+$/u;
 
@@ -421,16 +295,14 @@ const validateForm = ({ skipCaptcha = false } = {}) => {
     if (mode === 'signup') {
         if (password !== confirm) throw new Error('As senhas não conferem.');
 
-        if (!skipCaptcha) {
-            if (isTurnstileConfigured() && !captchaToken) {
-                throw new Error('Complete a verificação antes de continuar.');
-            }
+        if (isTurnstileConfigured() && !captchaToken) {
+            throw new Error('Complete a verificação antes de criar a conta.');
+        }
 
-            if (!isTurnstileConfigured()) {
-                const challengeValue = Number(modal.querySelector(SELECTORS.localChallengeInput)?.value);
-                if (challengeValue !== localChallengeAnswer) {
-                    throw new Error('A continha está incorreta. Tente novamente.');
-                }
+        if (!isTurnstileConfigured()) {
+            const challengeValue = Number(modal.querySelector(SELECTORS.localChallengeInput)?.value);
+            if (challengeValue !== localChallengeAnswer) {
+                throw new Error('A continha está incorreta. Tente novamente.');
             }
         }
     }
@@ -439,7 +311,7 @@ const validateForm = ({ skipCaptcha = false } = {}) => {
         throw new Error('Complete a verificação antes de entrar.');
     }
 
-    return { email, password, explorerName, avatar: normalizeAvatar(selectedAvatar) };
+    return { email, password, explorerName };
 };
 
 const updateNavSession = (session) => {
@@ -465,8 +337,6 @@ const showAccountView = (session) => {
     if (accountEmail) accountEmail.textContent = user?.email || '';
     const profileSnapshot = window.TardisProfileProgress?.getSnapshot?.();
     updateAccountPoints(profileSnapshot?.explorationPoints || 0, profileSnapshot?.starFragments || 0);
-    const avatar = profileSnapshot?.avatar || user?.user_metadata?.avatar || DEFAULT_AVATAR;
-    renderAvatarInto(accountAvatarPreview, avatar, { compact: true });
     syncFPSPreferenceToggle();
 
     const title = modal?.querySelector('#auth-title');
@@ -518,47 +388,35 @@ const handleSubmit = async (event) => {
     clearMessage();
 
     try {
-        if (mode === 'signup' && signupStep === 'account') {
-            validateForm({ skipCaptcha: false });
-            accountStepValidated = true;
-            setSignupStep('avatar');
-            return;
-        }
-
-        if (mode === 'signup' && signupStep === 'avatar') {
-            updateAvatarPreview();
-            setSignupStep('confirm');
-            return;
-        }
-
-        const { email, password, explorerName, avatar } = validateForm({ skipCaptcha: accountStepValidated });
+        const { email, password, explorerName } = validateForm();
         setLoading(true);
 
         const data = mode === 'signup'
-            ? await signUpWithEmail({ email, password, explorerName, avatar, captchaToken })
+            ? await signUpWithEmail({ email, password, explorerName, captchaToken })
             : await signInWithEmail({ email, password, captchaToken });
 
         const session = data?.session || await getCurrentSession();
 
         if (mode === 'signup' && !session) {
-            setMessage('Explorador criado. Se a confirmação de e-mail estiver ativa no Supabase, confirme pelo link enviado antes de entrar.', 'success');
+            setMessage('Conta criada. Se a confirmação de e-mail estiver ativa no Supabase, confirme pelo link enviado antes de entrar.', 'success');
             await setMode('login');
             return;
         }
 
         updateNavSession(session);
         showAccountView(session);
-        setMessage(mode === 'signup' ? 'Explorador criado com sucesso. Bem-vindo à missão!' : 'Login realizado com sucesso!', 'success');
+        const successMessage = data?.existingAccount
+            ? 'Essa conta já existia. Entramos com ela usando seu e-mail e senha.'
+            : (mode === 'signup' ? 'Conta de explorador criada com sucesso!' : 'Login realizado com sucesso!');
+
+        setMessage(successMessage, 'success');
 
         window.dispatchEvent(new CustomEvent('tardis:auth-success', {
-            detail: { session, mode, avatar }
+            detail: { session, mode }
         }));
     } catch (error) {
         setMessage(getAuthFriendlyMessage(error), 'error');
-        if (mode === 'signup' && signupStep === 'account') {
-            accountStepValidated = false;
-            await resetCaptcha();
-        }
+        await resetCaptcha();
     } finally {
         setLoading(false);
     }
@@ -585,7 +443,6 @@ const createModal = () => {
             <div class="auth-body">
                 <div class="auth-account-card" id="auth-account-card">
                     <span class="auth-kicker">SESSÃO ATIVA</span>
-                    <div class="auth-avatar-mini" id="auth-account-avatar-preview"></div>
                     <div class="auth-account-name" id="auth-account-name"></div>
                     <div class="auth-account-email" id="auth-account-email"></div>
 
@@ -623,74 +480,38 @@ const createModal = () => {
                     </div>
 
                     <form class="auth-form" id="auth-form" novalidate>
-                        <div class="auth-signup-steps" id="auth-signup-steps" aria-label="Etapas de criação do explorador">
-                            <div class="auth-step-pill active" data-signup-step="account"><strong>1</strong><span>Conta</span></div>
-                            <div class="auth-step-pill" data-signup-step="avatar"><strong>2</strong><span>Avatar</span></div>
-                            <div class="auth-step-pill" data-signup-step="confirm"><strong>3</strong><span>Missão</span></div>
+                        <div class="auth-field" id="auth-explorer-field">
+                            <label for="auth-explorer-name">Nome de Explorador</label>
+                            <input id="auth-explorer-name" type="text" autocomplete="nickname" maxlength="18" placeholder="Ex: Astro Theo" required>
                         </div>
 
-                        <div class="auth-step-panel active" data-auth-step-panel="account">
-                            <div class="auth-field" id="auth-explorer-field">
-                                <label for="auth-explorer-name">Nome de Explorador</label>
-                                <input id="auth-explorer-name" type="text" autocomplete="nickname" maxlength="18" placeholder="Ex: Astro Theo" required>
-                            </div>
+                        <div class="auth-field">
+                            <label for="auth-email">E-mail</label>
+                            <input id="auth-email" type="email" autocomplete="email" placeholder="voce@email.com" required>
+                        </div>
 
+                        <div class="auth-password-row">
                             <div class="auth-field">
-                                <label for="auth-email">E-mail</label>
-                                <input id="auth-email" type="email" autocomplete="email" placeholder="voce@email.com" required>
+                                <label for="auth-password">Senha</label>
+                                <input id="auth-password" type="password" autocomplete="new-password" placeholder="mín. 8 caracteres" required>
                             </div>
-
-                            <div class="auth-password-row">
-                                <div class="auth-field">
-                                    <label for="auth-password">Senha</label>
-                                    <input id="auth-password" type="password" autocomplete="new-password" placeholder="mín. 8 caracteres" required>
-                                </div>
-                                <div class="auth-field" id="auth-confirm-field">
-                                    <label for="auth-confirm-password">Confirmar senha</label>
-                                    <input id="auth-confirm-password" type="password" autocomplete="new-password" placeholder="repita a senha">
-                                </div>
-                            </div>
-
-                            <div class="auth-captcha-box" id="auth-captcha-box" aria-label="Verificação anti-spam"></div>
-
-                            <div class="auth-local-challenge" id="auth-local-challenge">
-                                <div class="auth-challenge-question" id="auth-local-challenge-question"></div>
-                                <div class="auth-field">
-                                    <label for="auth-local-challenge-answer">Resposta</label>
-                                    <input id="auth-local-challenge-answer" type="number" inputmode="numeric" placeholder="?">
-                                </div>
+                            <div class="auth-field" id="auth-confirm-field">
+                                <label for="auth-confirm-password">Confirmar senha</label>
+                                <input id="auth-confirm-password" type="password" autocomplete="new-password" placeholder="repita a senha">
                             </div>
                         </div>
 
-                        <div class="auth-step-panel" data-auth-step-panel="avatar">
-                            <div class="avatar-creator-layout">
-                                <div class="avatar-preview-wrap">
-                                    <span class="avatar-preview-title">Seu explorador</span>
-                                    <div id="auth-avatar-preview"></div>
-                                    <p class="avatar-preview-subtitle">Esse é o visual inicial. Depois, a Loja Cósmica vai liberar itens melhores.</p>
-                                </div>
-                                <div class="avatar-options" id="auth-avatar-options"></div>
+                        <div class="auth-captcha-box" id="auth-captcha-box" aria-label="Verificação anti-spam"></div>
+
+                        <div class="auth-local-challenge" id="auth-local-challenge">
+                            <div class="auth-challenge-question" id="auth-local-challenge-question"></div>
+                            <div class="auth-field">
+                                <label for="auth-local-challenge-answer">Resposta</label>
+                                <input id="auth-local-challenge-answer" type="number" inputmode="numeric" placeholder="?">
                             </div>
                         </div>
 
-                        <div class="auth-step-panel" data-auth-step-panel="confirm">
-                            <div class="avatar-confirm-card">
-                                <div id="auth-confirm-avatar-preview"></div>
-                                <div class="avatar-confirm-copy">
-                                    <span class="auth-kicker">PRONTO PARA PARTIR</span>
-                                    <strong id="auth-confirm-name">Explorador</strong>
-                                    <span id="auth-confirm-email">e-mail ainda não informado</span>
-                                    <p>Traje: <b id="auth-confirm-suit">Azul T.A.R.D.I.S.</b></p>
-                                    <p>Cabelo: <b id="auth-confirm-hair">Curto</b></p>
-                                    <p>Acessório: <b id="auth-confirm-accessory">Sem acessório</b></p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="auth-form-actions">
-                            <button class="auth-back-step auth-hidden" id="auth-back-step" type="button">VOLTAR</button>
-                            <button class="auth-submit" id="auth-submit" type="submit">CONTINUAR</button>
-                        </div>
+                        <button class="auth-submit" id="auth-submit" type="submit">CRIAR CONTA</button>
                     </form>
 
                 </div>
@@ -714,25 +535,11 @@ const createModal = () => {
     accountEmail = modal.querySelector('#auth-account-email');
     accountExplorationPoints = modal.querySelector('#auth-exploration-points');
     accountStarFragments = modal.querySelector('#auth-star-fragments');
-    accountAvatarPreview = modal.querySelector('#auth-account-avatar-preview');
 
     modal.querySelector('#auth-close')?.addEventListener('click', closeModal);
     modal.querySelector('#auth-backdrop')?.addEventListener('click', closeModal);
-    modal.querySelector('#auth-tab-signup')?.addEventListener('click', () => { resetSignupWizard(); setMode('signup'); });
+    modal.querySelector('#auth-tab-signup')?.addEventListener('click', () => setMode('signup'));
     modal.querySelector('#auth-tab-login')?.addEventListener('click', () => setMode('login'));
-    modal.querySelector('#auth-back-step')?.addEventListener('click', goBackSignupStep);
-    modal.querySelector('#auth-avatar-options')?.addEventListener('click', (event) => {
-        const choice = event.target.closest?.('[data-avatar-group]');
-        if (!choice) return;
-        const group = choice.dataset.avatarGroup;
-        const rawValue = choice.dataset.avatarValue;
-        selectedAvatar = normalizeAvatar({
-            ...selectedAvatar,
-            [group]: rawValue === 'none' ? null : rawValue
-        });
-        renderAvatarChoices();
-        updateAvatarPreview();
-    });
     modal.querySelector('#auth-logout')?.addEventListener('click', async () => {
         try {
             await signOut();
@@ -770,15 +577,6 @@ const createModal = () => {
             setMessage(getAuthFriendlyMessage(error, { fallback: 'Não foi possível reenviar a confirmação agora.' }), 'error');
         }
     });
-    modal.querySelectorAll('#auth-explorer-name, #auth-email, #auth-password, #auth-confirm-password, #auth-local-challenge-answer').forEach((input) => {
-        input.addEventListener('input', () => {
-            if (mode === 'signup') accountStepValidated = false;
-            updateAvatarPreview();
-        });
-    });
-
-    renderAvatarChoices();
-    updateAvatarPreview();
     form?.addEventListener('submit', handleSubmit);
 
     document.addEventListener('keydown', (event) => {

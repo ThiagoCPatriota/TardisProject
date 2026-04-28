@@ -4,7 +4,15 @@
 // ============================================
 import { supabase, getCurrentSession, onAuthStateChange } from '../auth/authService.js';
 import { loadAchievementState, getUnlockedCount } from '../achievements/achievementStore.js';
-import { DEFAULT_AVATAR, normalizeAvatar } from '../avatar/avatarData.js';
+
+const DEFAULT_AVATAR = {
+    base: 'explorer_01',
+    suit: 'basic_blue',
+    accessory: null,
+    aura: null,
+    frame: null,
+    title: null
+};
 
 const DEFAULT_COSMETICS = {
     head: null,
@@ -20,8 +28,6 @@ let isSyncing = false;
 let lastUserId = null;
 let lastKnownPoints = 0;
 let lastKnownFragments = 0;
-let lastKnownAvatar = DEFAULT_AVATAR;
-let lastKnownCosmetics = DEFAULT_COSMETICS;
 
 const cleanExplorerName = (name = '') => String(name).trim().replace(/\s+/g, ' ');
 
@@ -48,32 +54,18 @@ const emitProfilePoints = (detail = {}) => {
 const ensureProfileRow = async (session) => {
     if (!supabase || !session?.user) return null;
 
-    const metadataAvatar = session.user.user_metadata?.avatar
-        ? normalizeAvatar(session.user.user_metadata.avatar)
-        : DEFAULT_AVATAR;
-
-    const { data: existingProfile, error: readError } = await supabase
-        .from('profiles')
-        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-    if (readError) throw readError;
-
-    const nextProfile = {
+    const baseProfile = {
         id: session.user.id,
         user_id: session.user.id,
         explorer_name: getExplorerName(session.user),
-        exploration_points: Number(existingProfile?.exploration_points || 0),
-        star_fragments: Number(existingProfile?.star_fragments || 0),
-        avatar: existingProfile?.avatar ? normalizeAvatar(existingProfile.avatar) : metadataAvatar,
-        equipped_cosmetics: existingProfile?.equipped_cosmetics || DEFAULT_COSMETICS,
+        avatar: DEFAULT_AVATAR,
+        equipped_cosmetics: DEFAULT_COSMETICS,
         updated_at: new Date().toISOString()
     };
 
     const { error } = await supabase
         .from('profiles')
-        .upsert(nextProfile, {
+        .upsert(baseProfile, {
             onConflict: 'id',
             ignoreDuplicates: false
         });
@@ -98,9 +90,7 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
         lastUserId = null;
         lastKnownPoints = 0;
         lastKnownFragments = 0;
-        lastKnownAvatar = DEFAULT_AVATAR;
-        lastKnownCosmetics = DEFAULT_COSMETICS;
-        emitProfilePoints({ userId: null, avatar: DEFAULT_AVATAR, equippedCosmetics: DEFAULT_COSMETICS });
+        emitProfilePoints({ userId: null });
         return null;
     }
 
@@ -132,15 +122,13 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
         lastUserId = session.user.id;
         lastKnownPoints = Number(data?.exploration_points || nextPoints || 0);
         lastKnownFragments = Number(data?.star_fragments || nextFragments || 0);
-        lastKnownAvatar = data?.avatar ? normalizeAvatar(data.avatar) : DEFAULT_AVATAR;
-        lastKnownCosmetics = data?.equipped_cosmetics || DEFAULT_COSMETICS;
 
         emitProfilePoints({
             userId: session.user.id,
             explorerName: data?.explorer_name || getExplorerName(session.user),
             unlockedCount: getUnlockedCount(state),
-            avatar: lastKnownAvatar,
-            equippedCosmetics: lastKnownCosmetics
+            avatar: data?.avatar || DEFAULT_AVATAR,
+            equippedCosmetics: data?.equipped_cosmetics || DEFAULT_COSMETICS
         });
 
         return data;
@@ -168,9 +156,7 @@ const initProfileProgress = async () => {
             lastUserId = null;
             lastKnownPoints = 0;
             lastKnownFragments = 0;
-            lastKnownAvatar = DEFAULT_AVATAR;
-            lastKnownCosmetics = DEFAULT_COSMETICS;
-            emitProfilePoints({ userId: null, avatar: DEFAULT_AVATAR, equippedCosmetics: DEFAULT_COSMETICS });
+            emitProfilePoints({ userId: null });
             return;
         }
 
@@ -190,9 +176,7 @@ const initProfileProgress = async () => {
         getSnapshot: () => ({
             userId: lastUserId,
             explorationPoints: lastKnownPoints,
-            starFragments: lastKnownFragments,
-            avatar: lastKnownAvatar,
-            equippedCosmetics: lastKnownCosmetics
+            starFragments: lastKnownFragments
         })
     };
 };
