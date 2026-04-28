@@ -2,7 +2,7 @@
 // T.A.R.D.I.S. — Avatar Renderer
 // Renderiza o explorador básico e cosméticos equipados em SVG.
 // ============================================
-import { DEFAULT_AVATAR, getAvatarOption, normalizeAvatar } from './avatarData.js';
+import { DEFAULT_AVATAR, DEFAULT_LOCAL_AVATAR, getAvatarOption, normalizeAvatar } from './avatarData.js';
 
 const escapeHTML = (value = '') => String(value)
     .replaceAll('&', '&amp;')
@@ -153,8 +153,8 @@ const renderCosmeticFrame = (cosmetics) => {
     return '';
 };
 
-export const renderAvatarPreviewHTML = (avatar = DEFAULT_AVATAR, options = {}) => {
-    const normalized = normalizeAvatar(avatar);
+const renderLocalAvatarPreviewHTML = (avatar = DEFAULT_LOCAL_AVATAR, options = {}) => {
+    const normalized = normalizeAvatar({ ...avatar, avatarProvider: 'local' });
     const cosmetics = normalizeCosmetics(options.cosmetics || normalized.equippedCosmetics || {});
     const skin = getAvatarOption('skin', normalized.skin)?.color || '#d6a06f';
     const hair = getAvatarOption('hairColor', normalized.hairColor)?.color || '#6b3f24';
@@ -199,6 +199,107 @@ export const renderAvatarPreviewHTML = (avatar = DEFAULT_AVATAR, options = {}) =
             ${options.label ? `<span class="avatar-preview-label">${escapeHTML(options.label)}</span>` : ''}
         </div>
     `;
+};
+
+const DICEBEAR_BASE_URL = 'https://api.dicebear.com/9.x/avataaars/svg';
+
+const sanitizeSeed = (seed = 'tardis-explorer') => {
+    const clean = String(seed || '').trim();
+    return clean || 'tardis-explorer';
+};
+
+const addParam = (params, key, value) => {
+    if (value === null || value === undefined || value === '') return;
+    params.set(key, String(value));
+};
+
+export const buildDiceBearAvatarUrl = (avatar = DEFAULT_AVATAR, options = {}) => {
+    const normalized = normalizeAvatar(avatar);
+    const params = new URLSearchParams();
+
+    addParam(params, 'seed', sanitizeSeed(options.seed || normalized.seed));
+    addParam(params, 'size', options.size || 256);
+    addParam(params, 'radius', 50);
+    addParam(params, 'style', normalized.style || 'circle');
+    addParam(params, 'backgroundColor', normalized.backgroundColor || '0f172a');
+    addParam(params, 'backgroundType', 'solid');
+    addParam(params, 'top', normalized.top);
+    addParam(params, 'topProbability', 100);
+    addParam(params, 'hairColor', normalized.hairColor);
+    addParam(params, 'skinColor', normalized.skinColor);
+    addParam(params, 'clothing', normalized.clothing);
+    addParam(params, 'clothesColor', normalized.clothesColor);
+    addParam(params, 'mouth', normalized.mouth);
+    addParam(params, 'eyes', normalized.eyes);
+    addParam(params, 'eyebrows', normalized.eyebrows || 'default');
+
+    if (normalized.accessories) {
+        addParam(params, 'accessories', normalized.accessories);
+        addParam(params, 'accessoriesColor', normalized.accessoriesColor || normalized.clothesColor || '65c9ff');
+        addParam(params, 'accessoriesProbability', normalized.accessoriesProbability || 100);
+    } else {
+        addParam(params, 'accessoriesProbability', 0);
+    }
+
+    if (normalized.facialHair) {
+        addParam(params, 'facialHair', normalized.facialHair);
+        addParam(params, 'facialHairColor', normalized.facialHairColor || normalized.hairColor || '724133');
+        addParam(params, 'facialHairProbability', normalized.facialHairProbability || 100);
+    } else {
+        addParam(params, 'facialHairProbability', 0);
+    }
+
+    if (normalized.clothing === 'graphicShirt') {
+        addParam(params, 'clothingGraphic', 'diamond');
+    }
+
+    return `${DICEBEAR_BASE_URL}?${params.toString()}`;
+};
+
+const renderDiceBearCosmeticOverlay = (cosmetics = {}) => {
+    const frame = renderCosmeticFrame(cosmetics);
+    const aura = renderCosmeticAura(cosmetics);
+    const head = renderCosmeticHead(cosmetics);
+    const hand = renderCosmeticHandAccessory(cosmetics);
+
+    if (!frame && !aura && !head && !hand) return '';
+
+    return `
+        <svg class="avatar-cosmetic-overlay" viewBox="0 0 200 220" aria-hidden="true">
+            ${frame}
+            ${aura}
+            ${head}
+            ${hand}
+        </svg>
+    `;
+};
+
+const renderDiceBearAvatarPreviewHTML = (avatar = DEFAULT_AVATAR, options = {}) => {
+    const normalized = normalizeAvatar(avatar);
+    const cosmetics = normalizeCosmetics(options.cosmetics || normalized.equippedCosmetics || {});
+    const sizeClass = options.compact ? ' avatar-svg-compact' : '';
+    const label = options.label || 'DiceBear · Avataaars';
+    const url = buildDiceBearAvatarUrl(normalized, { size: options.compact ? 128 : 256 });
+    const fallback = renderLocalAvatarPreviewHTML({ ...DEFAULT_LOCAL_AVATAR, suit: 'basic_blue' }, { compact: options.compact });
+
+    return `
+        <div class="avatar-preview-card avatar-dicebear-card${sizeClass}" aria-label="Avatar do explorador DiceBear">
+            <img class="avatar-dicebear-img" src="${escapeHTML(url)}" alt="Avatar do explorador" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <div class="avatar-dicebear-fallback" style="display:none">${fallback}</div>
+            ${renderDiceBearCosmeticOverlay(cosmetics)}
+            ${options.label !== false ? `<span class="avatar-preview-label">${escapeHTML(label)}</span>` : ''}
+        </div>
+    `;
+};
+
+export const renderAvatarPreviewHTML = (avatar = DEFAULT_AVATAR, options = {}) => {
+    const normalized = normalizeAvatar(avatar);
+
+    if (normalized.avatarProvider === 'dicebear') {
+        return renderDiceBearAvatarPreviewHTML(normalized, options);
+    }
+
+    return renderLocalAvatarPreviewHTML(normalized, options);
 };
 
 export const renderAvatarInto = (container, avatar, options = {}) => {
