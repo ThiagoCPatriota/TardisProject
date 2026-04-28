@@ -58,6 +58,28 @@ const getAchievementStatus = (achievement, entry) => {
     return 'locked';
 };
 
+const isSecretLocked = (achievement, entry) => {
+    return Boolean(achievement.hidden && !entry.unlockedAt);
+};
+
+const getPublicAchievementText = (achievement, entry) => {
+    if (!isSecretLocked(achievement, entry)) {
+        return {
+            title: achievement.title,
+            description: achievement.description,
+            detail: achievement.detail || achievement.description,
+            category: achievement.category
+        };
+    }
+
+    return {
+        title: 'Conquista secreta',
+        description: 'Continue explorando a T.A.R.D.I.S. para revelar esta conquista.',
+        detail: 'Esta conquista está oculta. Ela será revelada quando você descobrir a combinação certa de exploração, conhecimento ou desempenho.',
+        category: 'Segredo bloqueado'
+    };
+};
+
 const getFilteredAchievements = (state) => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase('pt-BR');
 
@@ -66,11 +88,12 @@ const getFilteredAchievements = (state) => {
         const status = getAchievementStatus(achievement, entry);
         const categoryOk = activeCategory === 'Todas' || achievement.category === activeCategory;
         const statusOk = activeStatus === 'all' || activeStatus === status;
+        const publicText = getPublicAchievementText(achievement, entry);
         const searchOk = !normalizedSearch || [
-            achievement.title,
-            achievement.description,
-            achievement.detail,
-            achievement.category,
+            publicText.title,
+            publicText.description,
+            publicText.detail,
+            publicText.category,
             RARITY_META[achievement.rarity]?.label
         ].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(normalizedSearch);
 
@@ -115,6 +138,8 @@ const trackTriggeredUnique = (type, metaKey, itemValue, predicate = () => true) 
 };
 
 let lastLoginTrackAt = 0;
+let correctAnswerStreak = 0;
+let syncingBalancedExplorer = false;
 
 const trackDailyActivity = () => {
     if (!hasActiveAchievementUser()) return;
@@ -153,6 +178,24 @@ const trackPlanetGroups = (planetNameEN) => {
     );
 };
 
+const trackDetailGroups = (planetNameEN) => {
+    trackTriggeredUnique(
+        'detail_group',
+        'detailGroupPlanets',
+        planetNameEN,
+        (trigger) => Array.isArray(trigger.planets) && trigger.planets.includes(planetNameEN)
+    );
+};
+
+const trackMissionGroups = (missionKey) => {
+    trackTriggeredUnique(
+        'mission_group',
+        'missionGroupKeys',
+        missionKey,
+        (trigger) => Array.isArray(trigger.missions) && trigger.missions.includes(missionKey)
+    );
+};
+
 let syncingAchievementTotal = false;
 
 const syncAchievementTotalMilestones = (state = loadAchievementState()) => {
@@ -173,6 +216,46 @@ const syncAchievementTotalMilestones = (state = loadAchievementState()) => {
         });
     } finally {
         syncingAchievementTotal = false;
+    }
+};
+
+const getMetaCount = (state, achievementId, metaKey) => {
+    const entry = getAchievementEntry(state, achievementId);
+    const value = entry.meta?.[metaKey];
+    return Array.isArray(value) ? value.length : 0;
+};
+
+const syncBalancedExplorer = (state = loadAchievementState()) => {
+    if (!hasActiveAchievementUser() || syncingBalancedExplorer) return;
+
+    const balancedAchievements = getTriggeredAchievements('balanced_explorer');
+    if (!balancedAchievements.length) return;
+
+    const visitedPlanets = getMetaCount(state, 'mapa-celeste-completo', 'visitedPlanets');
+    const viewedMissions = getMetaCount(state, 'missoes-unicas-5', 'missions');
+    const correctAnswers = Number(getAchievementEntry(state, 'acertos-10').progress || 0);
+
+    const steps = [
+        visitedPlanets >= 5,
+        viewedMissions >= 5,
+        correctAnswers >= 10
+    ].filter(Boolean).length;
+
+    syncingBalancedExplorer = true;
+    try {
+        balancedAchievements.forEach((achievement) => {
+            const entry = getAchievementEntry(state, achievement.id);
+            const nextProgress = Math.min(steps, achievement.maxProgress);
+            if (!entry.unlockedAt && Number(entry.progress || 0) !== nextProgress) {
+                setAchievementProgress(achievement.id, nextProgress, {
+                    visitedPlanets,
+                    viewedMissions,
+                    correctAnswers
+                });
+            }
+        });
+    } finally {
+        syncingBalancedExplorer = false;
     }
 };
 
@@ -342,11 +425,13 @@ const renderCards = (state) => {
         const progressPercent = Math.round((progress / achievement.maxProgress) * 100);
         const lockedLabel = status === 'locked' ? 'Bloqueada' : status === 'progress' ? 'Em progresso' : 'Desbloqueada';
         const isSelected = selectedAchievementId === achievement.id;
+        const publicText = getPublicAchievementText(achievement, entry);
+        const secretClass = isSecretLocked(achievement, entry) ? 'secret-locked' : '';
 
         return `
-            <article class="achievement-card ${status} ${rarity.className} ${isSelected ? 'selected' : ''}" data-achievement-id="${achievement.id}" tabindex="0" role="button" aria-label="Ver detalhes da conquista ${escapeHTML(achievement.title)}">
+            <article class="achievement-card ${status} ${rarity.className} ${secretClass} ${isSelected ? 'selected' : ''}" data-achievement-id="${achievement.id}" tabindex="0" role="button" aria-label="Ver detalhes da conquista ${escapeHTML(publicText.title)}">
                 <div class="achievement-image-shell">
-                    <img src="${achievement.image}" alt="Imagem da conquista ${escapeHTML(achievement.title)}" class="achievement-image" loading="lazy">
+                    <img src="${achievement.image}" alt="Imagem da conquista ${escapeHTML(publicText.title)}" class="achievement-image" loading="lazy">
                     <span class="achievement-lock" aria-hidden="true"></span>
                 </div>
                 <div class="achievement-card-body">
@@ -354,8 +439,8 @@ const renderCards = (state) => {
                         <span class="achievement-rarity">${rarity.label}</span>
                         <span class="achievement-status-pill">${lockedLabel}</span>
                     </div>
-                    <h3>${escapeHTML(achievement.title)}</h3>
-                    <p>${escapeHTML(achievement.description)}</p>
+                    <h3>${escapeHTML(publicText.title)}</h3>
+                    <p>${escapeHTML(publicText.description)}</p>
                     <div class="achievement-progress-row">
                         <span>${progress}/${achievement.maxProgress} ${achievement.progressLabel || ''}</span>
                         <span>${progressPercent}%</span>
@@ -378,13 +463,15 @@ const renderDetail = (state) => {
     const rarity = RARITY_META[achievement.rarity] || RARITY_META.common;
     const progress = Math.min(entry.progress || 0, achievement.maxProgress);
     const progressPercent = Math.round((progress / achievement.maxProgress) * 100);
+    const publicText = getPublicAchievementText(achievement, entry);
+    const secretClass = isSecretLocked(achievement, entry) ? 'secret-locked' : '';
 
     detailPanel.innerHTML = `
-        <div class="achievement-detail-card ${status} ${rarity.className}">
-            <img src="${achievement.image}" alt="Imagem da conquista ${escapeHTML(achievement.title)}" class="achievement-detail-image">
-            <span class="achievement-detail-kicker">${escapeHTML(achievement.category)}</span>
-            <h2>${escapeHTML(achievement.title)}</h2>
-            <p>${escapeHTML(achievement.detail || achievement.description)}</p>
+        <div class="achievement-detail-card ${status} ${rarity.className} ${secretClass}">
+            <img src="${achievement.image}" alt="Imagem da conquista ${escapeHTML(publicText.title)}" class="achievement-detail-image">
+            <span class="achievement-detail-kicker">${escapeHTML(publicText.category)}</span>
+            <h2>${escapeHTML(publicText.title)}</h2>
+            <p>${escapeHTML(publicText.detail)}</p>
 
             <div class="achievement-detail-meta">
                 <div>
@@ -752,6 +839,7 @@ const wireAchievementTriggers = async () => {
         updateNavCount(event.detail.state);
         if (event.detail.unlockedAchievement) showAchievementToast(event.detail.unlockedAchievement);
         syncAchievementTotalMilestones(event.detail.state);
+        syncBalancedExplorer(event.detail.state);
         render();
     });
 
@@ -775,10 +863,13 @@ const wireAchievementTriggers = async () => {
         }
 
         if (detail.correct) {
+            correctAnswerStreak += 1;
             unlockTriggered('correct_answer', detail);
+            unlockTriggered('correct_answer_streak', { ...detail, streak: correctAnswerStreak }, (trigger) => correctAnswerStreak >= Number(trigger.streak || 0));
             addTriggeredProgress('correct_answer_count', 1, detail);
             addTriggeredProgress('score_total', 10, detail);
         } else {
+            correctAnswerStreak = 0;
             addTriggeredProgress('wrong_answer_count', 1, detail);
         }
     });
@@ -790,9 +881,14 @@ const wireAchievementTriggers = async () => {
         unlockTriggered('adventure_completed', detail);
         addTriggeredProgress('adventure_completed_count', 1, detail);
 
+        const today = new Date().toISOString().slice(0, 10);
+        trackTriggeredUnique('adventure_day_unique', 'adventureDays', today);
+
         if (detail.perfect) {
             addTriggeredProgress('perfect_adventure_count', 1, detail);
         }
+
+        correctAnswerStreak = 0;
 
         const percent = Number(detail.percent) || 0;
         unlockTriggered('adventure_percent', detail, (trigger) => percent >= Number(trigger.percent || 0));
@@ -826,6 +922,7 @@ const wireAchievementTriggers = async () => {
         if (planetNameEN) {
             unlockTriggered('planet_detail_specific', detail, (trigger) => trigger.planet === planetNameEN);
             trackTriggeredUnique('unique_planet_detail', 'planetDetails', planetNameEN);
+            trackDetailGroups(planetNameEN);
         }
     });
 
@@ -842,6 +939,7 @@ const wireAchievementTriggers = async () => {
 
         if (missionKey) {
             trackTriggeredUnique('unique_mission_view', 'missions', missionKey);
+            trackMissionGroups(missionKey);
         }
 
         if (planet) {

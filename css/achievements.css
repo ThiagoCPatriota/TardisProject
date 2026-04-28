@@ -1533,3 +1533,31 @@ body.achievements-open {
         display: none;
     }
 }
+
+/* ============================================
+   V24 — Curadoria e conquistas secretas
+   ============================================ */
+.achievement-card.secret-locked .achievement-image,
+.achievement-detail-card.secret-locked .achievement-detail-image {
+    filter: grayscale(1) brightness(0.36) contrast(1.1);
+    opacity: 0.58;
+}
+
+.achievement-card.secret-locked .achievement-rarity,
+.achievement-detail-card.secret-locked .achievement-detail-kicker {
+    color: #a5b4fc;
+}
+
+.achievement-card.secret-locked h3,
+.achievement-detail-card.secret-locked h2 {
+    color: #dbeafe;
+}
+
+.achievement-card.secret-locked {
+    background: linear-gradient(180deg, rgba(13, 18, 35, 0.98), rgba(6, 9, 19, 0.98));
+    border-style: dashed;
+}
+
+.achievement-detail-card.secret-locked {
+    background: linear-gradient(180deg, rgba(13, 18, 35, 0.98), rgba(6, 9, 19, 0.98));
+}
