@@ -1,26 +1,25 @@
 // ============================================
 // T.A.R.D.I.S. — Profile Progress Sync
 // Mantém Pontos de Exploração e Fragmentos Estelares em public.profiles.
+// Avatar experimental removido para preservar FPS.
 // ============================================
 import { supabase, getCurrentSession, onAuthStateChange } from '../auth/authService.js';
 import { loadAchievementState, getUnlockedCount } from '../achievements/achievementStore.js';
-import { DEFAULT_AVATAR, normalizeAvatar } from '../avatar/avatarData.js';
 
-const DEFAULT_COSMETICS = {
+const DEFAULT_COSMETICS = Object.freeze({
     head: null,
     outfit: null,
     accessory: null,
     aura: null,
     frame: null,
     title: null
-};
+});
 
 let syncTimer = null;
 let isSyncing = false;
 let lastUserId = null;
 let lastKnownPoints = 0;
 let lastKnownFragments = 0;
-let lastKnownAvatar = DEFAULT_AVATAR;
 let lastKnownCosmetics = DEFAULT_COSMETICS;
 
 const cleanExplorerName = (name = '') => String(name).trim().replace(/\s+/g, ' ');
@@ -45,16 +44,17 @@ const emitProfilePoints = (detail = {}) => {
     }));
 };
 
+const normalizeCosmetics = (cosmetics = {}) => ({
+    ...DEFAULT_COSMETICS,
+    ...(cosmetics && typeof cosmetics === 'object' ? cosmetics : {})
+});
+
 const ensureProfileRow = async (session) => {
     if (!supabase || !session?.user) return null;
 
-    const metadataAvatar = session.user.user_metadata?.avatar
-        ? normalizeAvatar(session.user.user_metadata.avatar)
-        : DEFAULT_AVATAR;
-
     const { data: existingProfile, error: readError } = await supabase
         .from('profiles')
-        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics')
+        .select('id, user_id, explorer_name, exploration_points, star_fragments, equipped_cosmetics')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -66,8 +66,7 @@ const ensureProfileRow = async (session) => {
         explorer_name: getExplorerName(session.user),
         exploration_points: Number(existingProfile?.exploration_points || 0),
         star_fragments: Number(existingProfile?.star_fragments || 0),
-        avatar: existingProfile?.avatar ? normalizeAvatar(existingProfile.avatar) : metadataAvatar,
-        equipped_cosmetics: existingProfile?.equipped_cosmetics || DEFAULT_COSMETICS,
+        equipped_cosmetics: normalizeCosmetics(existingProfile?.equipped_cosmetics),
         updated_at: new Date().toISOString()
     };
 
@@ -82,7 +81,7 @@ const ensureProfileRow = async (session) => {
 
     const { data, error: selectError } = await supabase
         .from('profiles')
-        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics')
+        .select('id, user_id, explorer_name, exploration_points, star_fragments, equipped_cosmetics')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -98,9 +97,8 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
         lastUserId = null;
         lastKnownPoints = 0;
         lastKnownFragments = 0;
-        lastKnownAvatar = DEFAULT_AVATAR;
         lastKnownCosmetics = DEFAULT_COSMETICS;
-        emitProfilePoints({ userId: null, avatar: DEFAULT_AVATAR, equippedCosmetics: DEFAULT_COSMETICS });
+        emitProfilePoints({ userId: null, equippedCosmetics: DEFAULT_COSMETICS });
         return null;
     }
 
@@ -124,7 +122,7 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
                 updated_at: new Date().toISOString()
             })
             .eq('id', session.user.id)
-            .select('exploration_points, star_fragments, explorer_name, avatar, equipped_cosmetics')
+            .select('exploration_points, star_fragments, explorer_name, equipped_cosmetics')
             .maybeSingle();
 
         if (error) throw error;
@@ -132,14 +130,12 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
         lastUserId = session.user.id;
         lastKnownPoints = Number(data?.exploration_points || nextPoints || 0);
         lastKnownFragments = Number(data?.star_fragments || nextFragments || 0);
-        lastKnownAvatar = data?.avatar ? normalizeAvatar(data.avatar) : DEFAULT_AVATAR;
-        lastKnownCosmetics = data?.equipped_cosmetics || DEFAULT_COSMETICS;
+        lastKnownCosmetics = normalizeCosmetics(data?.equipped_cosmetics);
 
         emitProfilePoints({
             userId: session.user.id,
             explorerName: data?.explorer_name || getExplorerName(session.user),
             unlockedCount: getUnlockedCount(state),
-            avatar: lastKnownAvatar,
             equippedCosmetics: lastKnownCosmetics
         });
 
@@ -168,9 +164,8 @@ const initProfileProgress = async () => {
             lastUserId = null;
             lastKnownPoints = 0;
             lastKnownFragments = 0;
-            lastKnownAvatar = DEFAULT_AVATAR;
             lastKnownCosmetics = DEFAULT_COSMETICS;
-            emitProfilePoints({ userId: null, avatar: DEFAULT_AVATAR, equippedCosmetics: DEFAULT_COSMETICS });
+            emitProfilePoints({ userId: null, equippedCosmetics: DEFAULT_COSMETICS });
             return;
         }
 
@@ -191,7 +186,6 @@ const initProfileProgress = async () => {
             userId: lastUserId,
             explorationPoints: lastKnownPoints,
             starFragments: lastKnownFragments,
-            avatar: lastKnownAvatar,
             equippedCosmetics: lastKnownCosmetics
         })
     };

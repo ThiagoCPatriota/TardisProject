@@ -607,3 +607,32 @@ body.ranking-open {
     display: none;
   }
 }
+
+/* V34 — Ranking sem avatar pesado */
+.ranking-avatar-visual.ranking-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(59, 130, 246, 0.08));
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  color: #e0f2fe;
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 1px;
+  box-shadow: none;
+}
+
+.ranking-avatar-visual.ranking-initials.compact {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+.ranking-avatar-visual.ranking-initials span {
+  line-height: 1;
+}

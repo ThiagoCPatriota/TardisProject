@@ -3,7 +3,6 @@
 // Compra/equipa cosméticos usando Fragmentos Estelares.
 // ============================================
 import { supabase, getCurrentSession } from '../auth/authService.js';
-import { DEFAULT_AVATAR, normalizeAvatar } from '../avatar/avatarData.js';
 import { SHOP_ITEMS, getShopItemById } from '../data/shopItems.js';
 
 const DEFAULT_COSMETICS = Object.freeze({
@@ -38,7 +37,6 @@ const emitShopUpdate = (detail = {}) => {
         detail: {
             explorationPoints: detail.profile?.exploration_points,
             starFragments: detail.profile?.star_fragments,
-            avatar: detail.profile?.avatar,
             equippedCosmetics: detail.profile?.equipped_cosmetics
         }
     }));
@@ -49,13 +47,10 @@ export const getDefaultCosmetics = () => ({ ...DEFAULT_COSMETICS });
 export const ensureShopProfile = async (session) => {
     if (!supabase || !session?.user) return null;
 
-    const metadataAvatar = session.user.user_metadata?.avatar
-        ? normalizeAvatar(session.user.user_metadata.avatar)
-        : DEFAULT_AVATAR;
 
     const { data: existingProfile, error: readError } = await supabase
         .from('profiles')
-        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics')
+        .select('id, user_id, explorer_name, exploration_points, star_fragments, equipped_cosmetics')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -67,7 +62,6 @@ export const ensureShopProfile = async (session) => {
         explorer_name: getExplorerName(session.user),
         exploration_points: Number(existingProfile?.exploration_points || 0),
         star_fragments: Number(existingProfile?.star_fragments || 0),
-        avatar: existingProfile?.avatar ? normalizeAvatar(existingProfile.avatar) : metadataAvatar,
         equipped_cosmetics: normalizeCosmetics(existingProfile?.equipped_cosmetics),
         updated_at: new Date().toISOString()
     };
@@ -80,7 +74,7 @@ export const ensureShopProfile = async (session) => {
 
     const { data, error: selectError } = await supabase
         .from('profiles')
-        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics')
+        .select('id, user_id, explorer_name, exploration_points, star_fragments, equipped_cosmetics')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -88,7 +82,6 @@ export const ensureShopProfile = async (session) => {
 
     return {
         ...data,
-        avatar: data?.avatar ? normalizeAvatar(data.avatar) : metadataAvatar,
         equipped_cosmetics: normalizeCosmetics(data?.equipped_cosmetics)
     };
 };
@@ -172,14 +165,13 @@ export const purchaseShopItem = async (itemId) => {
             updated_at: new Date().toISOString()
         })
         .eq('id', session.user.id)
-        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics')
+        .select('id, user_id, explorer_name, exploration_points, star_fragments, equipped_cosmetics')
         .maybeSingle();
 
     if (updateError) throw updateError;
 
     const nextProfile = {
         ...data,
-        avatar: data?.avatar ? normalizeAvatar(data.avatar) : DEFAULT_AVATAR,
         equipped_cosmetics: normalizeCosmetics(data?.equipped_cosmetics)
     };
 
@@ -213,14 +205,13 @@ export const equipCosmetic = async (itemId) => {
             updated_at: new Date().toISOString()
         })
         .eq('id', session.user.id)
-        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics')
+        .select('id, user_id, explorer_name, exploration_points, star_fragments, equipped_cosmetics')
         .maybeSingle();
 
     if (error) throw error;
 
     const nextProfile = {
         ...data,
-        avatar: data?.avatar ? normalizeAvatar(data.avatar) : DEFAULT_AVATAR,
         equipped_cosmetics: normalizeCosmetics(data?.equipped_cosmetics)
     };
 
