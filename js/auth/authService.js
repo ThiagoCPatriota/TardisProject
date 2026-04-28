@@ -103,16 +103,19 @@ export const signUpWithEmail = async ({ email, password, explorerName = '', capt
 
     if (error) {
         if (isAlreadyRegisteredError(error)) {
-            throw new Error('Essa conta já existe. Use a aba Login para entrar com esse e-mail.');
+            const loginData = await signInWithEmail({ email: cleanEmail, password });
+            return { ...loginData, existingAccount: true };
         }
 
         throw error;
     }
 
-    // O Supabase pode retornar user sem sessão/identities quando o e-mail já existe.
-    // Cadastro não deve logar automaticamente em uma conta existente.
+    // Em alguns fluxos do Supabase, tentar cadastrar um e-mail que já existe
+    // retorna um usuário sem sessão e sem identities para evitar enumeração de contas.
+    // Para o UX do T.A.R.D.I.S., se a senha estiver correta, tratamos isso como login.
     if (isExistingAccountResponse(data)) {
-        throw new Error('Essa conta já existe. Use a aba Login para continuar.');
+        const loginData = await signInWithEmail({ email: cleanEmail, password });
+        return { ...loginData, existingAccount: true };
     }
 
     rememberSession(data?.session || null);
