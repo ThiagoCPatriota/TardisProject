@@ -5,18 +5,6 @@
 // ============================================
 import { supabase, getCurrentSession, onAuthStateChange } from '../auth/authService.js';
 import { loadAchievementState, getUnlockedCount } from '../achievements/achievementStore.js';
-<<<<<<< HEAD
-=======
-
-const DEFAULT_AVATAR = {
-    base: 'explorer_01',
-    suit: 'basic_blue',
-    accessory: null,
-    aura: null,
-    frame: null,
-    title: null
-};
->>>>>>> parent of 63de6ba (Adicionando Avatar)
 
 const DEFAULT_COSMETICS = Object.freeze({
     head: null,
@@ -32,10 +20,7 @@ let isSyncing = false;
 let lastUserId = null;
 let lastKnownPoints = 0;
 let lastKnownFragments = 0;
-<<<<<<< HEAD
 let lastKnownCosmetics = DEFAULT_COSMETICS;
-=======
->>>>>>> parent of 63de6ba (Adicionando Avatar)
 
 const cleanExplorerName = (name = '') => String(name).trim().replace(/\s+/g, ' ');
 
@@ -67,7 +52,6 @@ const normalizeCosmetics = (cosmetics = {}) => ({
 const ensureProfileRow = async (session) => {
     if (!supabase || !session?.user) return null;
 
-<<<<<<< HEAD
     const { data: existingProfile, error: readError } = await supabase
         .from('profiles')
         .select('id, user_id, explorer_name, exploration_points, star_fragments, equipped_cosmetics')
@@ -83,20 +67,12 @@ const ensureProfileRow = async (session) => {
         exploration_points: Number(existingProfile?.exploration_points || 0),
         star_fragments: Number(existingProfile?.star_fragments || 0),
         equipped_cosmetics: normalizeCosmetics(existingProfile?.equipped_cosmetics),
-=======
-    const baseProfile = {
-        id: session.user.id,
-        user_id: session.user.id,
-        explorer_name: getExplorerName(session.user),
-        avatar: DEFAULT_AVATAR,
-        equipped_cosmetics: DEFAULT_COSMETICS,
->>>>>>> parent of 63de6ba (Adicionando Avatar)
         updated_at: new Date().toISOString()
     };
 
     const { error } = await supabase
         .from('profiles')
-        .upsert(baseProfile, {
+        .upsert(nextProfile, {
             onConflict: 'id',
             ignoreDuplicates: false
         });
@@ -121,12 +97,8 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
         lastUserId = null;
         lastKnownPoints = 0;
         lastKnownFragments = 0;
-<<<<<<< HEAD
         lastKnownCosmetics = DEFAULT_COSMETICS;
         emitProfilePoints({ userId: null, equippedCosmetics: DEFAULT_COSMETICS });
-=======
-        emitProfilePoints({ userId: null });
->>>>>>> parent of 63de6ba (Adicionando Avatar)
         return null;
     }
 
@@ -158,21 +130,13 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
         lastUserId = session.user.id;
         lastKnownPoints = Number(data?.exploration_points || nextPoints || 0);
         lastKnownFragments = Number(data?.star_fragments || nextFragments || 0);
-<<<<<<< HEAD
         lastKnownCosmetics = normalizeCosmetics(data?.equipped_cosmetics);
-=======
->>>>>>> parent of 63de6ba (Adicionando Avatar)
 
         emitProfilePoints({
             userId: session.user.id,
             explorerName: data?.explorer_name || getExplorerName(session.user),
             unlockedCount: getUnlockedCount(state),
-<<<<<<< HEAD
             equippedCosmetics: lastKnownCosmetics
-=======
-            avatar: data?.avatar || DEFAULT_AVATAR,
-            equippedCosmetics: data?.equipped_cosmetics || DEFAULT_COSMETICS
->>>>>>> parent of 63de6ba (Adicionando Avatar)
         });
 
         return data;
@@ -200,12 +164,8 @@ const initProfileProgress = async () => {
             lastUserId = null;
             lastKnownPoints = 0;
             lastKnownFragments = 0;
-<<<<<<< HEAD
             lastKnownCosmetics = DEFAULT_COSMETICS;
             emitProfilePoints({ userId: null, equippedCosmetics: DEFAULT_COSMETICS });
-=======
-            emitProfilePoints({ userId: null });
->>>>>>> parent of 63de6ba (Adicionando Avatar)
             return;
         }
 
@@ -225,12 +185,8 @@ const initProfileProgress = async () => {
         getSnapshot: () => ({
             userId: lastUserId,
             explorationPoints: lastKnownPoints,
-<<<<<<< HEAD
             starFragments: lastKnownFragments,
             equippedCosmetics: lastKnownCosmetics
-=======
-            starFragments: lastKnownFragments
->>>>>>> parent of 63de6ba (Adicionando Avatar)
         })
     };
 };

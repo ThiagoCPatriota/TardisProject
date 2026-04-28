@@ -45,16 +45,12 @@ const SELECTORS = {
 const cleanExplorerName = (name = '') => String(name).trim().replace(/\s+/g, ' ');
 const normalizeEmail = (email = '') => String(email).trim().toLowerCase();
 
-<<<<<<< HEAD
 const getAuthFormData = () => ({
     explorerName: cleanExplorerName(modal?.querySelector(SELECTORS.explorerName)?.value || ''),
     email: normalizeEmail(modal?.querySelector(SELECTORS.email)?.value || ''),
     password: modal?.querySelector(SELECTORS.password)?.value || '',
     confirm: modal?.querySelector(SELECTORS.confirm)?.value || ''
 });
-=======
-const normalizeEmail = (email = '') => email.trim().toLowerCase();
->>>>>>> parent of 63de6ba (Adicionando Avatar)
 
 const getAuthFriendlyMessage = (error, context = {}) => {
     const rawMessage = error?.message || 'Não foi possível concluir a autenticação.';
@@ -132,17 +128,14 @@ const clearMessage = () => {
     modal?.querySelector('#auth-resend-confirmation')?.classList.add('auth-hidden');
 };
 
-<<<<<<< HEAD
 const getSubmitLabel = () => mode === 'signup' ? 'CRIAR EXPLORADOR' : 'ENTRAR';
 
-=======
->>>>>>> parent of 63de6ba (Adicionando Avatar)
 const setLoading = (isLoading) => {
     if (!submitButton) return;
     submitButton.disabled = isLoading;
     submitButton.textContent = isLoading
-        ? (mode === 'signup' ? 'CRIANDO CONTA...' : 'ENTRANDO...')
-        : (mode === 'signup' ? 'CRIAR CONTA' : 'ENTRAR');
+        ? (mode === 'signup' ? 'CRIANDO EXPLORADOR...' : 'ENTRANDO...')
+        : getSubmitLabel();
 };
 
 const createLocalChallenge = () => {
@@ -274,34 +267,20 @@ const setMode = async (nextMode) => {
     signupTab?.classList.toggle('active', isSignupMode);
     loginTab?.classList.toggle('active', !isSignupMode);
 
-    if (title) title.textContent = isSignupMode ? 'Criar conta' : 'Entrar';
+    if (title) title.textContent = isSignupMode ? 'Criar Explorador' : 'Entrar';
     if (subtitle) {
         subtitle.textContent = isSignupMode
-<<<<<<< HEAD
             ? 'Crie sua conta para salvar conquistas, pontos e progresso.'
             : 'Entre com o e-mail e senha da sua conta T.A.R.D.I.S.';
     }
 
     updateFieldAvailability();
-=======
-            ? 'Escolha seu Nome de Explorador, e-mail, senha e resolva uma continha rápida.'
-            : 'Entre com o e-mail e senha da sua conta T.A.R.D.I.S.';
-    }
-
->>>>>>> parent of 63de6ba (Adicionando Avatar)
     setLoading(false);
     await renderCaptcha();
 };
 
 const validateForm = () => {
-<<<<<<< HEAD
     const { explorerName, email, password, confirm } = getAuthFormData();
-=======
-    const explorerName = cleanExplorerName(modal.querySelector(SELECTORS.explorerName)?.value || '');
-    const email = normalizeEmail(modal.querySelector(SELECTORS.email)?.value || '');
-    const password = modal.querySelector(SELECTORS.password)?.value || '';
-    const confirm = modal.querySelector(SELECTORS.confirm)?.value || '';
->>>>>>> parent of 63de6ba (Adicionando Avatar)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const explorerNameRegex = /^[\p{L}\p{N} _.-]+$/u;
 
@@ -324,11 +303,7 @@ const validateForm = () => {
         if (password !== confirm) throw new Error('As senhas não conferem.');
 
         if (isTurnstileConfigured() && !captchaToken) {
-<<<<<<< HEAD
             throw new Error('Complete a verificação antes de continuar.');
-=======
-            throw new Error('Complete a verificação antes de criar a conta.');
->>>>>>> parent of 63de6ba (Adicionando Avatar)
         }
 
         if (!isTurnstileConfigured()) {
@@ -431,29 +406,21 @@ const handleSubmit = async (event) => {
         const session = data?.session || await getCurrentSession();
 
         if (mode === 'signup' && !session) {
-            setMessage('Conta criada. Se a confirmação de e-mail estiver ativa no Supabase, confirme pelo link enviado antes de entrar.', 'success');
+            setMessage('Explorador criado. Se a confirmação de e-mail estiver ativa no Supabase, confirme pelo link enviado antes de entrar.', 'success');
             await setMode('login');
             return;
         }
 
         updateNavSession(session);
         showAccountView(session);
-        const successMessage = data?.existingAccount
-            ? 'Essa conta já existia. Entramos com ela usando seu e-mail e senha.'
-            : (mode === 'signup' ? 'Conta de explorador criada com sucesso!' : 'Login realizado com sucesso!');
-
-        setMessage(successMessage, 'success');
+        setMessage(mode === 'signup' ? 'Explorador criado com sucesso. Bem-vindo à missão!' : 'Login realizado com sucesso!', 'success');
 
         window.dispatchEvent(new CustomEvent('tardis:auth-success', {
             detail: { session, mode }
         }));
     } catch (error) {
         setMessage(getAuthFriendlyMessage(error), 'error');
-<<<<<<< HEAD
         if (mode === 'signup') await resetCaptcha();
-=======
-        await resetCaptcha();
->>>>>>> parent of 63de6ba (Adicionando Avatar)
     } finally {
         setLoading(false);
     }
@@ -539,7 +506,6 @@ const createModal = () => {
                         </div>
 
                         <div class="auth-captcha-box" id="auth-captcha-box" aria-label="Verificação anti-spam"></div>
-<<<<<<< HEAD
 
                         <div class="auth-local-challenge" id="auth-local-challenge">
                             <div class="auth-challenge-question" id="auth-local-challenge-question"></div>
@@ -552,18 +518,6 @@ const createModal = () => {
                         <div class="auth-form-actions">
                             <button class="auth-submit" id="auth-submit" type="submit">CRIAR EXPLORADOR</button>
                         </div>
-=======
-
-                        <div class="auth-local-challenge" id="auth-local-challenge">
-                            <div class="auth-challenge-question" id="auth-local-challenge-question"></div>
-                            <div class="auth-field">
-                                <label for="auth-local-challenge-answer">Resposta</label>
-                                <input id="auth-local-challenge-answer" type="number" inputmode="numeric" placeholder="?">
-                            </div>
-                        </div>
-
-                        <button class="auth-submit" id="auth-submit" type="submit">CRIAR CONTA</button>
->>>>>>> parent of 63de6ba (Adicionando Avatar)
                     </form>
                 </div>
 
@@ -591,10 +545,7 @@ const createModal = () => {
     modal.querySelector('#auth-backdrop')?.addEventListener('click', closeModal);
     modal.querySelector('#auth-tab-signup')?.addEventListener('click', () => setMode('signup'));
     modal.querySelector('#auth-tab-login')?.addEventListener('click', () => setMode('login'));
-<<<<<<< HEAD
 
-=======
->>>>>>> parent of 63de6ba (Adicionando Avatar)
     modal.querySelector('#auth-logout')?.addEventListener('click', async () => {
         try {
             await signOut();
@@ -632,10 +583,7 @@ const createModal = () => {
             setMessage(getAuthFriendlyMessage(error, { fallback: 'Não foi possível reenviar a confirmação agora.' }), 'error');
         }
     });
-<<<<<<< HEAD
 
-=======
->>>>>>> parent of 63de6ba (Adicionando Avatar)
     form?.addEventListener('submit', handleSubmit);
 
     document.addEventListener('keydown', (event) => {
