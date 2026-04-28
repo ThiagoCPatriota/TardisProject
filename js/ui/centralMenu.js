@@ -5,6 +5,7 @@
 import { getCurrentSession } from '../auth/authService.js';
 import { SHOP_CATEGORIES, getShopItemsByCategory, RARITY_LABELS } from '../data/shopItems.js';
 import { getShopState, purchaseShopItem, equipCosmetic, isItemEquipped, getEquippedItems } from '../shop/shopService.js';
+import { renderAvatarPreviewHTML } from '../avatar/avatarRenderer.js';
 
 let centralNav = null;
 let centralButton = null;
@@ -13,6 +14,7 @@ let shopPage = null;
 let shopGrid = null;
 let shopStatus = null;
 let shopBalance = null;
+let shopAvatar = null;
 let shopEquipped = null;
 let activeShopCategory = 'all';
 let currentShopState = null;
@@ -84,6 +86,13 @@ const renderShop = () => {
 
     if (shopBalance) shopBalance.textContent = balance;
 
+    if (shopAvatar) {
+        shopAvatar.innerHTML = renderAvatarPreviewHTML(profile?.avatar, {
+            compact: false,
+            label: profile?.explorer_name || 'Explorador',
+            cosmetics: profile?.equipped_cosmetics
+        });
+    }
 
     if (shopEquipped) shopEquipped.innerHTML = renderEquippedList(profile);
 
@@ -138,6 +147,7 @@ const createShopPage = () => {
         shopGrid = shopPage.querySelector('#shop-grid');
         shopStatus = shopPage.querySelector('#shop-status');
         shopBalance = shopPage.querySelector('#shop-balance');
+        shopAvatar = shopPage.querySelector('#shop-avatar-preview');
         shopEquipped = shopPage.querySelector('#shop-equipped-list');
         return;
     }
@@ -159,12 +169,12 @@ const createShopPage = () => {
             </header>
 
             <section class="shop-hero">
-                <div class="shop-avatar-panel shop-no-avatar-panel">
+                <div class="shop-avatar-panel">
+                    <div id="shop-avatar-preview" class="shop-avatar-preview"></div>
                     <div class="shop-equipped">
-                        <span class="shop-small-label">Cosméticos equipados</span>
+                        <span class="shop-small-label">Equipado agora</span>
                         <div id="shop-equipped-list" class="shop-equipped-list"></div>
                     </div>
-                    <p class="shop-no-avatar-note">A prévia visual do explorador foi pausada para preservar o FPS do Sistema Solar.</p>
                 </div>
 
                 <div class="shop-wallet-panel">

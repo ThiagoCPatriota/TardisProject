@@ -580,16 +580,3 @@ body.shop-open {
     overflow: hidden;
   }
 }
-
-/* V34 — Loja sem prévia de avatar pesado */
-.shop-no-avatar-panel {
-  align-items: stretch;
-  justify-content: center;
-}
-
-.shop-no-avatar-note {
-  margin: 10px 0 0;
-  color: rgba(191, 219, 254, 0.62);
-  font-size: 12px;
-  line-height: 1.5;
-}

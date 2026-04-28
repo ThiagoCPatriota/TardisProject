@@ -4,6 +4,7 @@
 // ============================================
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_CONFIG, isSupabaseConfigured } from './supabaseConfig.js';
+import { DEFAULT_AVATAR, normalizeAvatar } from '../avatar/avatarData.js';
 
 const storage = SUPABASE_CONFIG.persistOnlyCurrentTab ? window.sessionStorage : window.localStorage;
 
@@ -79,17 +80,19 @@ const ensureConfigured = () => {
     }
 };
 
-export const signUpWithEmail = async ({ email, password, explorerName = '', captchaToken = null }) => {
+export const signUpWithEmail = async ({ email, password, explorerName = '', avatar = DEFAULT_AVATAR, captchaToken = null }) => {
     ensureConfigured();
 
     const cleanEmail = normalizeEmail(email);
     const cleanExplorerName = explorerName.trim().replace(/\s+/g, ' ');
+    const cleanAvatar = normalizeAvatar(avatar);
 
     const options = {
         emailRedirectTo: SUPABASE_CONFIG.authRedirectTo,
         data: {
             explorer_name: cleanExplorerName,
-            display_name: cleanExplorerName
+            display_name: cleanExplorerName,
+            avatar: cleanAvatar
         }
     };
 

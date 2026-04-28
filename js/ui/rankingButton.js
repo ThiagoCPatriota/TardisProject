@@ -3,6 +3,8 @@
 // Ranking visual baseado em Pontos de Exploração no Supabase.
 // ============================================
 import { supabase, getCurrentSession, onAuthStateChange } from '../auth/authService.js';
+import { renderAvatarPreviewHTML } from '../avatar/avatarRenderer.js';
+import { DEFAULT_AVATAR, normalizeAvatar } from '../avatar/avatarData.js';
 import { getCosmeticLabel } from '../data/shopItems.js';
 
 let rankingPage = null;
@@ -52,6 +54,7 @@ const normalizeRankingRow = (row, index) => ({
     exploration_points: Number(row.exploration_points || 0),
     star_fragments: Number(row.star_fragments || 0),
     unlocked_count: Number(row.unlocked_count || 0),
+    avatar: row.avatar ? normalizeAvatar(row.avatar) : DEFAULT_AVATAR,
     equipped_cosmetics: row.equipped_cosmetics || {}
 });
 
@@ -60,16 +63,12 @@ const getTitleLabel = (row) => {
     return titleId ? getCosmeticLabel(titleId) : '';
 };
 
-const getInitials = (name = 'Explorador') => String(name)
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || '')
-    .join('') || 'EX';
-
-const renderRankingIdentity = (row, compact = true) => `
-    <div class="ranking-avatar-visual ranking-initials ${compact ? 'compact' : ''}" aria-hidden="true">
-        <span>${escapeHTML(getInitials(row.explorer_name))}</span>
+const renderRankingAvatar = (row, compact = true) => `
+    <div class="ranking-avatar-visual ${compact ? 'compact' : ''}">
+        ${renderAvatarPreviewHTML(row.avatar || DEFAULT_AVATAR, {
+            compact,
+            cosmetics: row.equipped_cosmetics || {}
+        })}
     </div>
 `;
 
@@ -99,6 +98,7 @@ const ensureExplorerProfile = async (session) => {
                 id: session.user.id,
                 user_id: session.user.id,
                 explorer_name: getExplorerName(session.user),
+                avatar: session.user.user_metadata?.avatar || DEFAULT_AVATAR,
                 equipped_cosmetics: {},
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
@@ -124,7 +124,7 @@ const loadRankingRows = async (session) => {
 
     const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, explorer_name, exploration_points, star_fragments, equipped_cosmetics, updated_at')
+        .select('user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics, updated_at')
         .order('exploration_points', { ascending: false })
         .limit(50);
 
@@ -167,7 +167,7 @@ const renderPodium = (rows, currentUserId) => {
         return `
             <article class="ranking-podium-card rank-${rank} ${isCurrentUser ? 'current-user' : ''}">
                 <div class="ranking-medal">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</div>
-                ${renderRankingIdentity(row, false)}
+                ${renderRankingAvatar(row, false)}
                 <span class="ranking-place">${rank}º lugar</span>
                 <h3>${escapeHTML(name)}</h3>
                 ${title ? `<span class="ranking-title-chip">${escapeHTML(title)}</span>` : ''}
@@ -199,7 +199,7 @@ const renderList = (rows, currentUserId) => {
         return `
             <article class="ranking-row ${isCurrentUser ? 'current-user' : ''}">
                 <span class="ranking-row-rank">#${Number(row.rank || 0)}</span>
-                ${renderRankingIdentity(row, true)}
+                ${renderRankingAvatar(row, true)}
                 <span class="ranking-row-name">
                     <strong>${escapeHTML(name)}</strong>
                     ${title ? `<small>${escapeHTML(title)}</small>` : ''}
