@@ -1,0 +1,438 @@
+/* ============================================
+   T.A.R.D.I.S. — Central Menu hotfix v26
+   Mantém Perfil/Conquistas/Ranking/Loja dentro de um único dropdown.
+   ============================================ */
+
+body.shop-open {
+  overflow: hidden;
+}
+
+.nav-right-central {
+  position: relative;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 0 !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  z-index: 1200;
+}
+
+.central-nav {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  overflow: visible;
+}
+
+.nav-central-toggle {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 38px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 9px 14px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(56, 189, 248, 0.24) !important;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(8, 47, 73, 0.62)) !important;
+  color: #eaf6ff !important;
+  font-family: var(--font-display) !important;
+  font-size: 10px !important;
+  letter-spacing: 0.9px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 26px rgba(0, 0, 0, 0.22);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.nav-central-toggle:hover,
+.nav-central-toggle:focus-visible,
+.central-nav.open .nav-central-toggle {
+  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.52) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(88, 28, 135, 0.3)) !important;
+  box-shadow: 0 12px 30px rgba(14, 165, 233, 0.16), inset 0 1px 0 rgba(255,255,255,0.08);
+  outline: none;
+}
+
+.nav-central-icon {
+  font-size: 14px !important;
+  filter: none !important;
+}
+
+.nav-central-label {
+  display: inline-block !important;
+  max-width: none !important;
+  color: #f8fbff !important;
+  white-space: nowrap;
+}
+
+/* O menu fica completamente escondido por padrão. Sem isso, os itens aparecem soltos na navbar. */
+.central-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 1300;
+  display: none !important;
+  width: min(340px, calc(100vw - 24px));
+  padding: 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  background: linear-gradient(180deg, rgba(6, 15, 34, 0.98), rgba(2, 6, 23, 0.98));
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.55), 0 0 34px rgba(56, 189, 248, 0.12);
+  backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+
+.central-nav.open .central-menu {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.central-menu::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 20px;
+  width: 14px;
+  height: 14px;
+  transform: rotate(45deg);
+  background: rgba(6, 15, 34, 0.98);
+  border-left: 1px solid rgba(56, 189, 248, 0.22);
+  border-top: 1px solid rgba(56, 189, 248, 0.22);
+}
+
+.central-menu-item,
+.nav-right-central .central-menu .central-menu-item,
+.nav-right-central .central-menu .nav-profile,
+.nav-right-central .central-menu .nav-badges,
+.nav-right-central .central-menu .nav-ranking,
+.nav-right-central .central-menu .nav-shop {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 56px !important;
+  height: auto !important;
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(148, 163, 184, 0.12) !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  color: #dbeafe !important;
+  font-family: var(--font-display) !important;
+  text-align: left !important;
+  letter-spacing: 0 !important;
+  cursor: pointer !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.central-menu-item:hover,
+.central-menu-item:focus-visible {
+  transform: translateX(2px);
+  border-color: rgba(56, 189, 248, 0.38) !important;
+  background: rgba(14, 165, 233, 0.11) !important;
+  outline: none;
+}
+
+.central-menu-item .nav-action-icon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 15px !important;
+  filter: none !important;
+}
+
+.central-menu-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.central-menu-copy strong,
+.central-menu-copy .nav-auth-label {
+  display: block !important;
+  max-width: 100% !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f8fbff !important;
+  font-size: 11px !important;
+  line-height: 1.1 !important;
+  letter-spacing: 0.8px;
+}
+
+.central-menu-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #8ea6ce;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.central-menu .nav-badges-count,
+.central-menu-pill {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  min-width: 22px !important;
+  height: 22px !important;
+  padding: 0 7px !important;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 9px !important;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  background: rgba(250, 204, 21, 0.13);
+  color: #fde68a;
+}
+
+.central-menu-pill {
+  min-width: auto !important;
+  height: 20px !important;
+  padding: 0 8px !important;
+  font-size: 7px !important;
+  color: #bae6fd;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+}
+
+.central-menu .nav-profile.auth-logged-in {
+  flex-direction: initial !important;
+  text-align: left !important;
+}
+
+/* Defesa contra estilos antigos de Ranking/Conquistas que tentavam transformar os itens em botões soltos. */
+.nav-right-central > .nav-badges,
+.nav-right-central > .nav-ranking,
+.nav-right-central > .nav-profile,
+.nav-right-central > .nav-shop {
+  display: none !important;
+}
+
+/* ============================================
+   Loja Cósmica placeholder — escondida por padrão
+   ============================================ */
+.shop-page {
+  position: fixed;
+  inset: 0;
+  z-index: 9400;
+  display: none;
+  color: var(--text-primary);
+  pointer-events: auto;
+}
+
+.shop-page.active {
+  display: block;
+}
+
+.shop-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(14, 165, 233, 0.16), transparent 32%),
+    radial-gradient(circle at 86% 12%, rgba(168, 85, 247, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(2, 6, 23, 0.96), rgba(3, 7, 18, 0.98));
+  backdrop-filter: blur(16px);
+}
+
+.shop-shell {
+  position: relative;
+  width: min(860px, calc(100vw - 32px));
+  max-height: min(720px, calc(100dvh - 32px));
+  margin: 16px auto;
+  padding: 24px;
+  border-radius: 26px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  background: linear-gradient(180deg, rgba(8, 20, 44, 0.96), rgba(3, 7, 18, 0.98));
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.62);
+  overflow: auto;
+}
+
+.shop-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.shop-kicker {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: #7dd3fc;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+.shop-header h2 {
+  margin: 0 0 10px;
+  color: #f8fbff;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4vw, 44px);
+  line-height: 1;
+}
+
+.shop-header p {
+  margin: 0;
+  max-width: 680px;
+  color: #9fb3d9;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.shop-header strong {
+  color: #fde68a;
+}
+
+.shop-close {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #dbeafe;
+  cursor: pointer;
+  font-family: var(--font-display);
+}
+
+.shop-close:hover,
+.shop-close:focus-visible {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(56, 189, 248, 0.12);
+  outline: none;
+}
+
+.shop-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.shop-preview-card {
+  min-height: 130px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.shop-preview-card strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #f8fbff;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.8px;
+}
+
+.shop-preview-card span {
+  color: #9fb3d9;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+  .shop-preview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 950px) and (orientation: landscape) {
+  .nav-right-central {
+    max-width: 24vw !important;
+    flex: 0 0 auto !important;
+  }
+
+  .nav-central-toggle {
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 9px !important;
+    gap: 5px !important;
+    border-radius: 13px !important;
+    font-size: 7px !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .nav-central-icon {
+    font-size: 12px !important;
+  }
+
+  .central-menu {
+    top: calc(100% + 7px);
+    right: 0;
+    width: min(310px, calc(100vw - 18px));
+    padding: 8px;
+    border-radius: 18px;
+  }
+
+  .central-menu-item,
+  .nav-right-central .central-menu .central-menu-item,
+  .nav-right-central .central-menu .nav-profile,
+  .nav-right-central .central-menu .nav-badges,
+  .nav-right-central .central-menu .nav-ranking,
+  .nav-right-central .central-menu .nav-shop {
+    min-height: 48px !important;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    padding: 8px 10px !important;
+    gap: 8px !important;
+  }
+
+  .central-menu-item .nav-action-icon {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    font-size: 13px !important;
+  }
+
+  .central-menu-copy strong,
+  .central-menu-copy .nav-auth-label {
+    font-size: 9px !important;
+  }
+
+  .central-menu-copy small {
+    font-size: 9px;
+  }
+
+  .shop-shell {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  }
+
+  .shop-header h2 {
+    font-size: 24px;
+  }
+
+  .shop-header p {
+    font-size: 12px;
+  }
+}

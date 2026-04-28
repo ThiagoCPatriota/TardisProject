@@ -579,3 +579,42 @@
     font-size: 9.5px;
   }
 }
+
+/* V25 — Perfil base com pontos */
+.auth-profile-wallet {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 16px;
+}
+
+.auth-profile-wallet div {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.auth-profile-wallet span {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #8ea6ce;
+  text-transform: uppercase;
+}
+
+.auth-profile-wallet strong {
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: #f8fbff;
+}
+
+.auth-profile-wallet div:first-child strong {
+  color: #bae6fd;
+}
+
+.auth-profile-wallet div:last-child strong {
+  color: #fde68a;
+}
