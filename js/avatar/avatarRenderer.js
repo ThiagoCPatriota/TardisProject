@@ -1,6 +1,6 @@
 // ============================================
 // T.A.R.D.I.S. — Avatar Renderer
-// Renderiza o explorador básico e cosméticos equipados em SVG.
+// Renderiza o explorador básico em SVG, sem depender de imagens externas.
 // ============================================
 import { DEFAULT_AVATAR, getAvatarOption, normalizeAvatar } from './avatarData.js';
 
@@ -18,20 +18,6 @@ const HAIR_PATHS = {
     none: ''
 };
 
-const DEFAULT_COSMETICS = {
-    head: null,
-    outfit: null,
-    accessory: null,
-    aura: null,
-    frame: null,
-    title: null
-};
-
-const normalizeCosmetics = (cosmetics = {}) => ({
-    ...DEFAULT_COSMETICS,
-    ...(cosmetics && typeof cosmetics === 'object' ? cosmetics : {})
-});
-
 const renderAccessory = (accessory, suitAccent) => {
     if (accessory === 'star_pin') {
         return `<path d="M112 134l3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1 3-7Z" fill="${suitAccent}" opacity="0.95"/>`;
@@ -48,114 +34,8 @@ const renderAccessory = (accessory, suitAccent) => {
     return '';
 };
 
-const renderCosmeticAura = (cosmetics) => {
-    if (cosmetics.aura === 'galactic_aura') {
-        return `
-            <ellipse cx="100" cy="111" rx="82" ry="98" fill="none" stroke="#a78bfa" stroke-width="3" opacity="0.22"/>
-            <ellipse cx="100" cy="111" rx="70" ry="86" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0.20"/>
-            <circle cx="49" cy="46" r="3" fill="#f8fafc" opacity="0.85"/>
-            <circle cx="151" cy="61" r="2.5" fill="#c084fc" opacity="0.85"/>
-            <circle cx="163" cy="152" r="2" fill="#7dd3fc" opacity="0.85"/>
-        `;
-    }
-
-    if (cosmetics.aura === 'aurora_aura') {
-        return `
-            <path d="M34 147c28-50 62-62 132-58" fill="none" stroke="#22d3ee" stroke-width="6" opacity="0.18" stroke-linecap="round"/>
-            <path d="M42 161c36-42 70-48 122-39" fill="none" stroke="#a7f3d0" stroke-width="5" opacity="0.16" stroke-linecap="round"/>
-        `;
-    }
-
-    return '';
-};
-
-const renderCosmeticOutfit = (cosmetics) => {
-    if (cosmetics.outfit === 'scientist_coat') {
-        return `
-            <path d="M61 145c11-11 24-17 39-17s28 6 39 17l-2 58H63l-2-58Z" fill="#e0f2fe" opacity="0.72"/>
-            <path d="M83 137l17 20 17-20" fill="none" stroke="#0f172a" stroke-width="4" opacity="0.42" stroke-linecap="round"/>
-        `;
-    }
-
-    if (cosmetics.outfit === 'timelord_cape') {
-        return `
-            <path d="M52 135c16 13 32 19 48 19s32-6 48-19c9 29 13 52 15 68H37c2-16 6-39 15-68Z" fill="#7c2d12" opacity="0.72"/>
-            <path d="M64 139c13 9 25 13 36 13s23-4 36-13" fill="none" stroke="#facc15" stroke-width="3" opacity="0.65"/>
-        `;
-    }
-
-    return '';
-};
-
-const renderCosmeticHead = (cosmetics) => {
-    if (cosmetics.head === 'crown_solar') {
-        return `
-            <path d="M72 39l13 13 15-21 15 21 13-13 4 30H68l4-30Z" fill="#facc15" stroke="#fff7ad" stroke-width="3" opacity="0.95"/>
-            <circle cx="100" cy="50" r="5" fill="#f97316"/>
-        `;
-    }
-
-    if (cosmetics.head === 'helmet_mars') {
-        return `
-            <circle cx="100" cy="82" r="50" fill="none" stroke="#fb923c" stroke-width="6" opacity="0.78"/>
-            <path d="M63 78h74" stroke="#fb923c" stroke-width="5" opacity="0.68" stroke-linecap="round"/>
-        `;
-    }
-
-    if (cosmetics.head === 'visor_nebula') {
-        return `
-            <rect x="70" y="72" width="60" height="18" rx="9" fill="#111827" stroke="#a855f7" stroke-width="4" opacity="0.96"/>
-            <circle cx="87" cy="81" r="4" fill="#38bdf8"/>
-            <circle cx="113" cy="81" r="4" fill="#f472b6"/>
-        `;
-    }
-
-    return '';
-};
-
-const renderCosmeticHandAccessory = (cosmetics) => {
-    if (cosmetics.accessory === 'sonic_screwdriver') {
-        return `
-            <g transform="rotate(-25 145 148)">
-                <rect x="139" y="119" width="8" height="42" rx="4" fill="#dbeafe" stroke="#38bdf8" stroke-width="2"/>
-                <circle cx="143" cy="116" r="5" fill="#7dd3fc"/>
-            </g>
-        `;
-    }
-
-    if (cosmetics.accessory === 'saturn_badge') {
-        return `
-            <g transform="translate(120 134)">
-                <circle cx="0" cy="0" r="10" fill="#facc15" opacity="0.95"/>
-                <ellipse cx="0" cy="0" rx="18" ry="6" fill="none" stroke="#fde68a" stroke-width="3" transform="rotate(-18)"/>
-            </g>
-        `;
-    }
-
-    return '';
-};
-
-const renderCosmeticFrame = (cosmetics) => {
-    if (cosmetics.frame === 'voyager_frame') {
-        return `
-            <rect x="14" y="12" width="172" height="196" rx="28" fill="none" stroke="#facc15" stroke-width="4" opacity="0.78"/>
-            <path d="M30 34h34M136 34h34M30 186h34M136 186h34" stroke="#fde68a" stroke-width="3" stroke-linecap="round" opacity="0.65"/>
-        `;
-    }
-
-    if (cosmetics.frame === 'blue_nebula_bg') {
-        return `
-            <circle cx="35" cy="40" r="34" fill="#38bdf8" opacity="0.10"/>
-            <circle cx="166" cy="165" r="42" fill="#2563eb" opacity="0.12"/>
-        `;
-    }
-
-    return '';
-};
-
 export const renderAvatarPreviewHTML = (avatar = DEFAULT_AVATAR, options = {}) => {
     const normalized = normalizeAvatar(avatar);
-    const cosmetics = normalizeCosmetics(options.cosmetics || normalized.equippedCosmetics || {});
     const skin = getAvatarOption('skin', normalized.skin)?.color || '#d6a06f';
     const hair = getAvatarOption('hairColor', normalized.hairColor)?.color || '#6b3f24';
     const suit = getAvatarOption('suit', normalized.suit) || getAvatarOption('suit', DEFAULT_AVATAR.suit);
@@ -179,11 +59,8 @@ export const renderAvatarPreviewHTML = (avatar = DEFAULT_AVATAR, options = {}) =
                         <stop offset="100%" stop-color="#061226"/>
                     </linearGradient>
                 </defs>
-                ${renderCosmeticFrame(cosmetics)}
                 <circle cx="100" cy="98" r="88" fill="url(#avatarGlow)"/>
-                ${renderCosmeticAura(cosmetics)}
                 <path d="M55 203c5-47 24-75 45-75s40 28 45 75H55Z" fill="url(#suitGradient)" stroke="rgba(255,255,255,0.26)" stroke-width="3"/>
-                ${renderCosmeticOutfit(cosmetics)}
                 <path d="M77 133h46l-8 22H85l-8-22Z" fill="#e0f2fe" opacity="0.88"/>
                 <path d="M83 153h34v46H83z" fill="rgba(2,6,23,0.28)"/>
                 <circle cx="100" cy="80" r="42" fill="${skin}" stroke="rgba(255,255,255,0.28)" stroke-width="3"/>
@@ -193,8 +70,6 @@ export const renderAvatarPreviewHTML = (avatar = DEFAULT_AVATAR, options = {}) =
                 <path d="M89 99c8 8 16 8 24 0" fill="none" stroke="#061226" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
                 <circle cx="100" cy="133" r="9" fill="${suitAccent}" opacity="0.95"/>
                 ${accessory}
-                ${renderCosmeticHandAccessory(cosmetics)}
-                ${renderCosmeticHead(cosmetics)}
             </svg>
             ${options.label ? `<span class="avatar-preview-label">${escapeHTML(options.label)}</span>` : ''}
         </div>

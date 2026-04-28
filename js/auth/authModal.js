@@ -466,8 +466,7 @@ const showAccountView = (session) => {
     const profileSnapshot = window.TardisProfileProgress?.getSnapshot?.();
     updateAccountPoints(profileSnapshot?.explorationPoints || 0, profileSnapshot?.starFragments || 0);
     const avatar = profileSnapshot?.avatar || user?.user_metadata?.avatar || DEFAULT_AVATAR;
-    const equippedCosmetics = profileSnapshot?.equippedCosmetics || {};
-    renderAvatarInto(accountAvatarPreview, avatar, { compact: true, cosmetics: equippedCosmetics });
+    renderAvatarInto(accountAvatarPreview, avatar, { compact: true });
     syncFPSPreferenceToggle();
 
     const title = modal?.querySelector('#auth-title');
@@ -753,12 +752,6 @@ const createModal = () => {
     window.addEventListener('tardis:fps-visibility-changed', syncFPSPreferenceToggle);
     window.addEventListener('tardis:profile-points-updated', (event) => {
         updateAccountPoints(event.detail?.explorationPoints || 0, event.detail?.starFragments || 0);
-        const avatar = event.detail?.avatar;
-        const equippedCosmetics = event.detail?.equippedCosmetics;
-        if (avatar || equippedCosmetics) {
-            const currentAvatar = avatar || window.TardisProfileProgress?.getSnapshot?.()?.avatar || DEFAULT_AVATAR;
-            renderAvatarInto(accountAvatarPreview, currentAvatar, { compact: true, cosmetics: equippedCosmetics || {} });
-        }
     });
 
     modal.querySelector('#auth-resend-confirmation')?.addEventListener('click', async () => {

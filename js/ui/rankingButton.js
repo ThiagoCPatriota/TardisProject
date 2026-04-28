@@ -1,11 +1,8 @@
 // ============================================
 // T.A.R.D.I.S. — Ranking dos Exploradores
-// Ranking visual baseado em Pontos de Exploração no Supabase.
+// Ranking geral baseado em Pontos de Exploração no Supabase.
 // ============================================
 import { supabase, getCurrentSession, onAuthStateChange } from '../auth/authService.js';
-import { renderAvatarPreviewHTML } from '../avatar/avatarRenderer.js';
-import { DEFAULT_AVATAR, normalizeAvatar } from '../avatar/avatarData.js';
-import { getCosmeticLabel } from '../data/shopItems.js';
 
 let rankingPage = null;
 let rankingList = null;
@@ -33,6 +30,12 @@ const getExplorerName = (user) => {
     ) || 'Explorador';
 };
 
+const getInitials = (name = 'Explorador') => {
+    const parts = cleanExplorerName(name).split(' ').filter(Boolean);
+    const initials = parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+    return initials || 'EX';
+};
+
 const formatDate = (isoDate) => {
     if (!isoDate) return '—';
 
@@ -46,31 +49,6 @@ const formatDate = (isoDate) => {
         return '—';
     }
 };
-
-const normalizeRankingRow = (row, index) => ({
-    ...row,
-    rank: Number(row.rank || index + 1),
-    explorer_name: row.explorer_name || 'Explorador',
-    exploration_points: Number(row.exploration_points || 0),
-    star_fragments: Number(row.star_fragments || 0),
-    unlocked_count: Number(row.unlocked_count || 0),
-    avatar: row.avatar ? normalizeAvatar(row.avatar) : DEFAULT_AVATAR,
-    equipped_cosmetics: row.equipped_cosmetics || {}
-});
-
-const getTitleLabel = (row) => {
-    const titleId = row.equipped_cosmetics?.title;
-    return titleId ? getCosmeticLabel(titleId) : '';
-};
-
-const renderRankingAvatar = (row, compact = true) => `
-    <div class="ranking-avatar-visual ${compact ? 'compact' : ''}">
-        ${renderAvatarPreviewHTML(row.avatar || DEFAULT_AVATAR, {
-            compact,
-            cosmetics: row.equipped_cosmetics || {}
-        })}
-    </div>
-`;
 
 const requestLoginForRanking = () => {
     document.dispatchEvent(new CustomEvent('tardis:auth-open', {
@@ -98,13 +76,28 @@ const ensureExplorerProfile = async (session) => {
                 id: session.user.id,
                 user_id: session.user.id,
                 explorer_name: getExplorerName(session.user),
-                avatar: session.user.user_metadata?.avatar || DEFAULT_AVATAR,
+                avatar: {
+                    base: 'explorer_01',
+                    suit: 'basic_blue',
+                    accessory: null,
+                    aura: null,
+                    frame: null,
+                    title: null
+                },
                 equipped_cosmetics: {},
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
     } catch (error) {
         console.warn('[Ranking] Não foi possível sincronizar o perfil público:', error?.message || error);
     }
+};
+
+const getFallbackRanking = async (session) => {
+    if (!session?.user || !window.TardisAchievements) return [];
+
+    // Fallback visual para não deixar a página vazia caso o SQL do ranking ainda não tenha sido executado.
+    // O ranking real vem de public.get_achievement_ranking() no Supabase.
+    return [];
 };
 
 const loadRankingRows = async (session) => {
@@ -114,32 +107,18 @@ const loadRankingRows = async (session) => {
 
     await ensureExplorerProfile(session);
 
-    const { data: rpcData, error: rpcError } = await supabase.rpc('get_explorer_ranking', {
+    const { data, error } = await supabase.rpc('get_achievement_ranking', {
         limit_count: 50
     });
 
-    if (!rpcError && Array.isArray(rpcData)) {
-        return rpcData.map(normalizeRankingRow);
-    }
+    if (error) throw error;
 
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics, updated_at')
-        .order('exploration_points', { ascending: false })
-        .limit(50);
-
-    if (error) throw rpcError || error;
-
-    return (Array.isArray(data) ? data : []).map((row, index) => normalizeRankingRow({
-        ...row,
-        rank: index + 1,
-        last_unlock_at: row.updated_at,
-        unlocked_count: 0
-    }, index));
+    return Array.isArray(data) ? data : [];
 };
 
 const getPodiumOrder = (rows) => {
     const top = rows.slice(0, 3);
+    // Visualmente o 1º fica no centro; esquerda 2º, direita 3º.
     return [top[1], top[0], top[2]].filter(Boolean);
 };
 
@@ -162,17 +141,15 @@ const renderPodium = (rows, currentUserId) => {
         const rank = Number(row.rank || 0);
         const name = row.explorer_name || 'Explorador';
         const isCurrentUser = row.user_id === currentUserId;
-        const title = getTitleLabel(row);
 
         return `
             <article class="ranking-podium-card rank-${rank} ${isCurrentUser ? 'current-user' : ''}">
                 <div class="ranking-medal">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</div>
-                ${renderRankingAvatar(row, false)}
+                <div class="ranking-avatar">${escapeHTML(getInitials(name))}</div>
                 <span class="ranking-place">${rank}º lugar</span>
                 <h3>${escapeHTML(name)}</h3>
-                ${title ? `<span class="ranking-title-chip">${escapeHTML(title)}</span>` : ''}
-                <strong>${Number(row.exploration_points || 0)}</strong>
-                <span>Pontos de Exploração</span>
+                <strong>${Number(row.exploration_points ?? row.unlocked_count ?? 0)}</strong>
+                <span>pontos</span>
             </article>
         `;
     }).join('');
@@ -194,19 +171,17 @@ const renderList = (rows, currentUserId) => {
     rankingList.innerHTML = rows.map((row) => {
         const name = row.explorer_name || 'Explorador';
         const isCurrentUser = row.user_id === currentUserId;
-        const title = getTitleLabel(row);
 
         return `
             <article class="ranking-row ${isCurrentUser ? 'current-user' : ''}">
                 <span class="ranking-row-rank">#${Number(row.rank || 0)}</span>
-                ${renderRankingAvatar(row, true)}
+                <span class="ranking-row-avatar">${escapeHTML(getInitials(name))}</span>
                 <span class="ranking-row-name">
                     <strong>${escapeHTML(name)}</strong>
-                    ${title ? `<small>${escapeHTML(title)}</small>` : ''}
                     ${isCurrentUser ? '<em>Você</em>' : ''}
                 </span>
-                <span class="ranking-row-score">${Number(row.exploration_points || 0)} pts</span>
-                <span class="ranking-row-fragments">${Number(row.unlocked_count || 0)} conquistas</span>
+                <span class="ranking-row-score">${Number(row.exploration_points ?? row.unlocked_count ?? 0)} pts</span>
+                <span class="ranking-row-date">Última: ${formatDate(row.last_unlock_at)}</span>
             </article>
         `;
     }).join('');
@@ -217,7 +192,7 @@ const renderSummary = (rows, currentUserId) => {
 
     const currentUserRow = rows.find((row) => row.user_id === currentUserId);
     const totalExplorers = rows.length;
-    const topScore = Number(rows[0]?.exploration_points || 0);
+    const topScore = Number(rows[0]?.exploration_points ?? rows[0]?.unlocked_count ?? 0);
 
     rankingSummary.innerHTML = `
         <div class="ranking-summary-card">
@@ -263,8 +238,10 @@ const loadAndRenderRanking = async () => {
         setStatus(rows.length ? '' : 'Ainda não há Pontos de Exploração suficientes para montar o ranking.', 'warning');
     } catch (error) {
         console.warn('[Ranking] Falha ao carregar ranking:', error?.message || error);
-        renderRanking([], null);
-        setStatus('Não foi possível carregar o ranking do Supabase. Execute docs/SUPABASE_SHOP_RANKING_SETUP.sql no SQL Editor e tente novamente.', 'error');
+        const session = await getCurrentSession();
+        const fallbackRows = await getFallbackRanking(session);
+        renderRanking(fallbackRows, session?.user?.id);
+        setStatus('Não foi possível carregar o ranking do Supabase. Execute docs/SUPABASE_PROFILE_POINTS_SETUP.sql no SQL Editor e tente novamente.', 'error');
     } finally {
         isLoadingRanking = false;
     }
@@ -272,6 +249,9 @@ const loadAndRenderRanking = async () => {
 
 const closeAchievementsPageIfOpen = () => {
     window.TardisAchievements?.close?.();
+
+    // Defesa extra: caso o módulo de conquistas ainda não tenha exposto a API
+    // ou algum estado antigo tenha ficado preso após navegar/voltar no browser.
     const achievementsPage = document.getElementById('achievements-page');
     achievementsPage?.classList.remove('active');
     achievementsPage?.setAttribute('aria-hidden', 'true');
@@ -281,7 +261,6 @@ const closeAchievementsPageIfOpen = () => {
 function openRankingPage() {
     if (!rankingPage) return;
     closeAchievementsPageIfOpen();
-    window.TardisCentral?.closeShop?.();
     rankingPage.classList.add('active');
     rankingPage.setAttribute('aria-hidden', 'false');
     document.body.classList.add('ranking-open');
@@ -322,7 +301,7 @@ const createRankingPage = () => {
                 <div class="ranking-title-block">
                     <span class="ranking-kicker">HALL DOS EXPLORADORES</span>
                     <h1 id="ranking-title">Ranking</h1>
-                    <p>O pódio é definido pelos Pontos de Exploração. Fragmentos Estelares podem ser gastos na loja sem diminuir sua posição.</p>
+                    <p>O pódio é definido pelos Pontos de Exploração. Eles são históricos e não diminuem quando você gastar Fragmentos Estelares na futura loja.</p>
                 </div>
                 <button class="ranking-close" id="ranking-close" type="button" aria-label="Fechar ranking">✕</button>
             </header>
@@ -336,7 +315,7 @@ const createRankingPage = () => {
                     <span>Posição</span>
                     <span>Explorador</span>
                     <span>Pontos</span>
-                    <span>Conquistas</span>
+                    <span>Última conquista</span>
                 </div>
                 <div class="ranking-list" id="ranking-list"></div>
             </section>
@@ -372,6 +351,9 @@ const bindRankingButton = () => {
 const wireRankingEvents = () => {
     bindRankingButton();
 
+    // Listener delegado e capturado: se outro módulo recriar a navbar, se o usuário
+    // navegar e voltar pelo bfcache, ou se o listener direto for perdido, o botão
+    // continua funcionando.
     document.addEventListener('click', (event) => {
         const rankingButton = event.target.closest?.('#nav-ranking');
         if (!rankingButton) return;
@@ -389,10 +371,6 @@ const wireRankingEvents = () => {
     window.addEventListener('pageshow', () => {
         bindRankingButton();
         rankingPage?.classList.toggle('active', rankingPage?.getAttribute('aria-hidden') === 'false');
-    });
-
-    window.addEventListener('tardis:shop-updated', () => {
-        if (rankingPage?.classList.contains('active')) loadAndRenderRanking();
     });
 
     rankingPage.querySelector('#ranking-close')?.addEventListener('click', closeRankingPage);
