@@ -309,14 +309,11 @@ const renderSummary = (state) => {
 };
 
 const renderFilters = () => {
-    const categoryBox = page.querySelector('#achievements-category-filters');
-    categoryBox.innerHTML = ACHIEVEMENT_CATEGORIES.map((category) => `
-        <button class="ach-filter ${activeCategory === category ? 'active' : ''}" data-category="${escapeHTML(category)}" type="button">
-            ${escapeHTML(category)}
-        </button>
-    `).join('');
+    activeCategory = 'Todas';
 
     const statusBox = page.querySelector('#achievements-status-filters');
+    if (!statusBox) return;
+
     statusBox.innerHTML = Object.entries(STATUS_LABELS).map(([status, label]) => `
         <button class="ach-filter ach-filter-status ${activeStatus === status ? 'active' : ''}" data-status="${status}" type="button">
             ${label}
@@ -331,7 +328,7 @@ const renderCards = (state) => {
         grid.innerHTML = `
             <div class="ach-empty-state">
                 <strong>Nenhuma conquista encontrada.</strong>
-                <span>Tente mudar o filtro para ver outras missões.</span>
+                <span>Tente buscar por outro nome ou alterar o status.</span>
             </div>
         `;
         return;
@@ -453,31 +450,6 @@ const safeSetAchievementSession = async (session) => {
     }
 };
 
-const getCurrentSessionFast = async () => {
-    return withTimeout(getCurrentSession({ timeoutMs: 1600 }), 1800, null);
-};
-
-let restoreSyncTimer = null;
-
-const handleBrowserReturn = () => {
-    // Quando o usuário sai para outro site/app e volta pelo histórico ou bfcache,
-    // promessas antigas podem continuar pendentes. Liberamos travas e religamos a navbar.
-    isOpeningPage = false;
-    bindNavBadgesButton();
-
-    clearTimeout(restoreSyncTimer);
-    restoreSyncTimer = setTimeout(async () => {
-        try {
-            const session = await getCurrentSessionFast();
-            await safeSetAchievementSession(session);
-            updateNavCount(loadAchievementState());
-            if (page?.classList.contains('active')) render();
-        } catch (error) {
-            console.warn('[Achievements] Falha ao restaurar estado após retorno à página:', error?.message || error);
-        }
-    }, 80);
-};
-
 const closeRankingPageIfOpen = () => {
     window.TardisRanking?.close?.();
 
@@ -511,7 +483,7 @@ const openPage = async (options = {}) => {
     isOpeningPage = true;
 
     try {
-        const session = await getCurrentSessionFast();
+        const session = await getCurrentSession();
 
         if (!session?.user) {
             requestLoginForAchievements();
@@ -597,15 +569,16 @@ const createPage = () => {
 
             <div class="achievements-sync-warning" id="achievements-sync-warning" role="status"></div>
 
-            <nav class="achievements-filters" aria-label="Filtros de conquistas">
-                <div class="achievements-filter-row" id="achievements-category-filters"></div>
-                <div class="achievements-filter-row achievements-status-row" id="achievements-status-filters"></div>
-            </nav>
+            <div class="achievements-toolbar">
+                <nav class="achievements-filters" aria-label="Filtros de conquistas">
+                    <div class="achievements-filter-row achievements-status-row" id="achievements-status-filters"></div>
+                </nav>
 
-            <label class="achievements-search" for="achievements-search-input">
-                <span>Buscar conquista</span>
-                <input id="achievements-search-input" type="search" placeholder="Digite missão, planeta, raridade ou categoria..." autocomplete="off">
-            </label>
+                <label class="achievements-search" for="achievements-search-input">
+                    <span>Buscar conquista</span>
+                    <input id="achievements-search-input" type="search" placeholder="Buscar por nome, planeta, missão ou raridade..." autocomplete="off">
+                </label>
+            </div>
 
             <main class="achievements-content">
                 <section class="achievements-grid" id="achievements-grid" aria-label="Lista de conquistas"></section>
@@ -675,13 +648,9 @@ const wirePageEvents = () => {
         } : undefined);
     });
 
-    window.addEventListener('pageshow', handleBrowserReturn);
-    window.addEventListener('focus', handleBrowserReturn);
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) handleBrowserReturn();
-    });
-    window.addEventListener('pagehide', () => {
-        isOpeningPage = false;
+    window.addEventListener('pageshow', () => {
+        bindNavBadgesButton();
+        page?.classList.toggle('active', page?.getAttribute('aria-hidden') === 'false');
     });
 
     page.querySelector('#achievements-close')?.addEventListener('click', closePage);
@@ -739,8 +708,8 @@ const unlockSessionStartAchievements = () => {
 };
 
 const wireAchievementTriggers = async () => {
-    const session = await getCurrentSessionFast();
-    await safeSetAchievementSession(session);
+    const session = await getCurrentSession();
+    await setAchievementSession(session);
     unlockSessionStartAchievements();
 
     onAuthStateChange(async (_event, sessionData) => {
@@ -762,7 +731,7 @@ const wireAchievementTriggers = async () => {
     });
 
     window.addEventListener('tardis:auth-success', async (event) => {
-        const session = event.detail?.session || await getCurrentSessionFast();
+        const session = event.detail?.session || await getCurrentSession();
         await safeSetAchievementSession(session);
         unlockSessionStartAchievements();
 
