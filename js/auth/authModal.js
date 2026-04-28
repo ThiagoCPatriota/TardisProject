@@ -24,6 +24,8 @@ let accountCard = null;
 let formWrapper = null;
 let accountExplorerName = null;
 let accountEmail = null;
+let accountExplorationPoints = null;
+let accountStarFragments = null;
 let navProfile = null;
 let navProfileIcon = null;
 let navAuthLabel = null;
@@ -89,6 +91,11 @@ const getExplorerName = (user) => {
 const getDisplayName = (user) => {
     const explorerName = getExplorerName(user);
     return explorerName || getEmailPreview(user?.email || '');
+};
+
+const updateAccountPoints = (points = 0, fragments = 0) => {
+    if (accountExplorationPoints) accountExplorationPoints.textContent = Number(points || 0);
+    if (accountStarFragments) accountStarFragments.textContent = Number(fragments || 0);
 };
 
 const syncFPSPreferenceToggle = () => {
@@ -328,6 +335,8 @@ const showAccountView = (session) => {
 
     if (accountExplorerName) accountExplorerName.textContent = user ? getDisplayName(user) : '';
     if (accountEmail) accountEmail.textContent = user?.email || '';
+    const profileSnapshot = window.TardisProfileProgress?.getSnapshot?.();
+    updateAccountPoints(profileSnapshot?.explorationPoints || 0, profileSnapshot?.starFragments || 0);
     syncFPSPreferenceToggle();
 
     const title = modal?.querySelector('#auth-title');
@@ -437,6 +446,17 @@ const createModal = () => {
                     <div class="auth-account-name" id="auth-account-name"></div>
                     <div class="auth-account-email" id="auth-account-email"></div>
 
+                    <div class="auth-profile-wallet" aria-label="Pontos do explorador">
+                        <div>
+                            <span>Pontos de Exploração</span>
+                            <strong id="auth-exploration-points">0</strong>
+                        </div>
+                        <div>
+                            <span>Fragmentos Estelares</span>
+                            <strong id="auth-star-fragments">0</strong>
+                        </div>
+                    </div>
+
                     <div class="auth-preferences" aria-label="Preferências do explorador">
                         <label class="auth-pref-row" for="auth-fps-toggle">
                             <span class="auth-pref-copy">
@@ -513,6 +533,8 @@ const createModal = () => {
     formWrapper = modal.querySelector('#auth-form-wrapper');
     accountExplorerName = modal.querySelector('#auth-account-name');
     accountEmail = modal.querySelector('#auth-account-email');
+    accountExplorationPoints = modal.querySelector('#auth-exploration-points');
+    accountStarFragments = modal.querySelector('#auth-star-fragments');
 
     modal.querySelector('#auth-close')?.addEventListener('click', closeModal);
     modal.querySelector('#auth-backdrop')?.addEventListener('click', closeModal);
@@ -535,6 +557,9 @@ const createModal = () => {
     });
 
     window.addEventListener('tardis:fps-visibility-changed', syncFPSPreferenceToggle);
+    window.addEventListener('tardis:profile-points-updated', (event) => {
+        updateAccountPoints(event.detail?.explorationPoints || 0, event.detail?.starFragments || 0);
+    });
 
     modal.querySelector('#auth-resend-confirmation')?.addEventListener('click', async () => {
         const email = normalizeEmail(modal.querySelector(SELECTORS.email)?.value || '');

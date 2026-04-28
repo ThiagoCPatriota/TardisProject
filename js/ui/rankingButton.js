@@ -1,6 +1,6 @@
 // ============================================
 // T.A.R.D.I.S. — Ranking dos Exploradores
-// Ranking geral baseado na quantidade de conquistas desbloqueadas no Supabase.
+// Ranking geral baseado em Pontos de Exploração no Supabase.
 // ============================================
 import { supabase, getCurrentSession, onAuthStateChange } from '../auth/authService.js';
 
@@ -10,23 +10,6 @@ let rankingPodium = null;
 let rankingStatus = null;
 let rankingSummary = null;
 let isLoadingRanking = false;
-
-let rankingRestoreTimer = null;
-
-const withTimeout = (promise, timeoutMs = 1800, fallback = null) => {
-    let timer = null;
-
-    return Promise.race([
-        promise,
-        new Promise((resolve) => {
-            timer = setTimeout(() => resolve(fallback), timeoutMs);
-        })
-    ]).finally(() => clearTimeout(timer));
-};
-
-const getCurrentSessionFast = async () => {
-    return withTimeout(getCurrentSession({ timeoutMs: 1600 }), 1800, null);
-};
 
 const escapeHTML = (value = '') => String(value)
     .replaceAll('&', '&amp;')
@@ -91,7 +74,17 @@ const ensureExplorerProfile = async (session) => {
             .from('profiles')
             .upsert({
                 id: session.user.id,
+                user_id: session.user.id,
                 explorer_name: getExplorerName(session.user),
+                avatar: {
+                    base: 'explorer_01',
+                    suit: 'basic_blue',
+                    accessory: null,
+                    aura: null,
+                    frame: null,
+                    title: null
+                },
+                equipped_cosmetics: {},
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
     } catch (error) {
@@ -155,8 +148,8 @@ const renderPodium = (rows, currentUserId) => {
                 <div class="ranking-avatar">${escapeHTML(getInitials(name))}</div>
                 <span class="ranking-place">${rank}º lugar</span>
                 <h3>${escapeHTML(name)}</h3>
-                <strong>${Number(row.unlocked_count || 0)}</strong>
-                <span>conquistas</span>
+                <strong>${Number(row.exploration_points ?? row.unlocked_count ?? 0)}</strong>
+                <span>pontos</span>
             </article>
         `;
     }).join('');
@@ -187,7 +180,7 @@ const renderList = (rows, currentUserId) => {
                     <strong>${escapeHTML(name)}</strong>
                     ${isCurrentUser ? '<em>Você</em>' : ''}
                 </span>
-                <span class="ranking-row-score">${Number(row.unlocked_count || 0)} conquistas</span>
+                <span class="ranking-row-score">${Number(row.exploration_points ?? row.unlocked_count ?? 0)} pts</span>
                 <span class="ranking-row-date">Última: ${formatDate(row.last_unlock_at)}</span>
             </article>
         `;
@@ -199,7 +192,7 @@ const renderSummary = (rows, currentUserId) => {
 
     const currentUserRow = rows.find((row) => row.user_id === currentUserId);
     const totalExplorers = rows.length;
-    const topScore = Number(rows[0]?.unlocked_count || 0);
+    const topScore = Number(rows[0]?.exploration_points ?? rows[0]?.unlocked_count ?? 0);
 
     rankingSummary.innerHTML = `
         <div class="ranking-summary-card">
@@ -228,7 +221,7 @@ const loadAndRenderRanking = async () => {
     isLoadingRanking = true;
 
     try {
-        const session = await getCurrentSessionFast();
+        const session = await getCurrentSession();
 
         if (!session?.user) {
             closeRankingPage();
@@ -242,13 +235,13 @@ const loadAndRenderRanking = async () => {
 
         const rows = await loadRankingRows(session);
         renderRanking(rows, session.user.id);
-        setStatus(rows.length ? '' : 'Ainda não há conquistas desbloqueadas suficientes para montar o ranking.', 'warning');
+        setStatus(rows.length ? '' : 'Ainda não há Pontos de Exploração suficientes para montar o ranking.', 'warning');
     } catch (error) {
         console.warn('[Ranking] Falha ao carregar ranking:', error?.message || error);
-        const session = await getCurrentSessionFast();
+        const session = await getCurrentSession();
         const fallbackRows = await getFallbackRanking(session);
         renderRanking(fallbackRows, session?.user?.id);
-        setStatus('Não foi possível carregar o ranking do Supabase. Execute docs/SUPABASE_RANKING_SETUP.sql no SQL Editor e tente novamente.', 'error');
+        setStatus('Não foi possível carregar o ranking do Supabase. Execute docs/SUPABASE_PROFILE_POINTS_SETUP.sql no SQL Editor e tente novamente.', 'error');
     } finally {
         isLoadingRanking = false;
     }
@@ -286,7 +279,7 @@ const openRankingFromNav = async (event) => {
     event?.stopPropagation?.();
     event?.stopImmediatePropagation?.();
 
-    const session = await getCurrentSessionFast();
+    const session = await getCurrentSession();
     if (!session?.user) {
         requestLoginForRanking();
         return;
@@ -308,7 +301,7 @@ const createRankingPage = () => {
                 <div class="ranking-title-block">
                     <span class="ranking-kicker">HALL DOS EXPLORADORES</span>
                     <h1 id="ranking-title">Ranking</h1>
-                    <p>O pódio é definido pela quantidade de conquistas desbloqueadas. Quanto mais você explora, mais alto chega.</p>
+                    <p>O pódio é definido pelos Pontos de Exploração. Eles são históricos e não diminuem quando você gastar Fragmentos Estelares na futura loja.</p>
                 </div>
                 <button class="ranking-close" id="ranking-close" type="button" aria-label="Fechar ranking">✕</button>
             </header>
@@ -321,7 +314,7 @@ const createRankingPage = () => {
                 <div class="ranking-board-head">
                     <span>Posição</span>
                     <span>Explorador</span>
-                    <span>Conquistas</span>
+                    <span>Pontos</span>
                     <span>Última conquista</span>
                 </div>
                 <div class="ranking-list" id="ranking-list"></div>
@@ -334,26 +327,6 @@ const createRankingPage = () => {
     rankingPodium = rankingPage.querySelector('#ranking-podium');
     rankingStatus = rankingPage.querySelector('#ranking-status');
     rankingSummary = rankingPage.querySelector('#ranking-summary');
-};
-
-const handleBrowserReturn = () => {
-    // Ao voltar do Google/outra página pelo histórico, o navegador pode restaurar
-    // a aba com requisições antigas congeladas. Liberamos travas e religamos a navbar.
-    isLoadingRanking = false;
-    bindRankingButton();
-
-    clearTimeout(rankingRestoreTimer);
-    rankingRestoreTimer = setTimeout(async () => {
-        try {
-            const session = await getCurrentSessionFast();
-            await ensureExplorerProfile(session);
-            if (rankingPage?.classList.contains('active') && session?.user) {
-                loadAndRenderRanking();
-            }
-        } catch (error) {
-            console.warn('[Ranking] Falha ao restaurar estado após retorno à página:', error?.message || error);
-        }
-    }, 80);
 };
 
 const bindRankingButton = () => {
@@ -395,13 +368,9 @@ const wireRankingEvents = () => {
 
     document.addEventListener('tardis:open-ranking', openRankingFromNav);
 
-    window.addEventListener('pageshow', handleBrowserReturn);
-    window.addEventListener('focus', handleBrowserReturn);
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) handleBrowserReturn();
-    });
-    window.addEventListener('pagehide', () => {
-        isLoadingRanking = false;
+    window.addEventListener('pageshow', () => {
+        bindRankingButton();
+        rankingPage?.classList.toggle('active', rankingPage?.getAttribute('aria-hidden') === 'false');
     });
 
     rankingPage.querySelector('#ranking-close')?.addEventListener('click', closeRankingPage);
@@ -423,7 +392,7 @@ const wireRankingEvents = () => {
 };
 
 const syncProfileOnAuth = async () => {
-    const session = await getCurrentSessionFast();
+    const session = await getCurrentSession();
     await ensureExplorerProfile(session);
 
     onAuthStateChange(async (_event, sessionData) => {
