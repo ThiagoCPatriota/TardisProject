@@ -60,28 +60,68 @@ const getSignupAccountData = () => ({
 
 const getAvatarLabel = (group, id) => getAvatarOption(group, id)?.label || 'Padrão';
 
+const getAvatarWithCurrentSeed = () => {
+    const account = getSignupAccountData();
+    const seed = account.explorerName || account.email || selectedAvatar.seed || 'tardis-explorer';
+    return normalizeAvatar({
+        ...selectedAvatar,
+        avatarProvider: 'dicebear',
+        dicebearStyle: 'avataaars',
+        seed
+    });
+};
+
+const getAvatarSummary = (avatar = selectedAvatar) => {
+    const normalized = normalizeAvatar(avatar);
+    const visual = getAvatarLabel('clothing', normalized.clothing);
+    const color = getAvatarLabel('clothesColor', normalized.clothesColor);
+    const hair = `${getAvatarLabel('top', normalized.top)} · ${getAvatarLabel('hairColor', normalized.hairColor)}`;
+    const accessory = normalized.accessories
+        ? getAvatarLabel('accessories', normalized.accessories)
+        : 'Sem óculos';
+    const expression = `${getAvatarLabel('eyes', normalized.eyes)} · ${getAvatarLabel('mouth', normalized.mouth)}`;
+
+    return { visual: `${visual} · ${color}`, hair, accessory, expression };
+};
+
 const updateAvatarPreview = () => {
     const preview = modal?.querySelector('#auth-avatar-preview');
     const confirmPreview = modal?.querySelector('#auth-confirm-avatar-preview');
+    const previewAvatar = getAvatarWithCurrentSeed();
+    selectedAvatar = previewAvatar;
 
-    renderAvatarInto(preview, selectedAvatar, { label: 'Explorador básico' });
-    renderAvatarInto(confirmPreview, selectedAvatar, { compact: false });
+    renderAvatarInto(preview, previewAvatar, { label: 'DiceBear · Avataaars' });
+    renderAvatarInto(confirmPreview, previewAvatar, { compact: false, label: 'Avatar inicial' });
 
     const summaryName = modal?.querySelector('#auth-confirm-name');
     const summaryEmail = modal?.querySelector('#auth-confirm-email');
     const summarySuit = modal?.querySelector('#auth-confirm-suit');
     const summaryHair = modal?.querySelector('#auth-confirm-hair');
     const summaryAccessory = modal?.querySelector('#auth-confirm-accessory');
+    const summaryExpression = modal?.querySelector('#auth-confirm-expression');
     const account = getSignupAccountData();
+    const summary = getAvatarSummary(previewAvatar);
 
     if (summaryName) summaryName.textContent = account.explorerName || 'Explorador';
     if (summaryEmail) summaryEmail.textContent = account.email || 'e-mail ainda não informado';
-    if (summarySuit) summarySuit.textContent = getAvatarLabel('suit', selectedAvatar.suit);
-    if (summaryHair) summaryHair.textContent = selectedAvatar.hair === 'none'
-        ? 'Capacete limpo'
-        : `${getAvatarLabel('hair', selectedAvatar.hair)} · ${getAvatarLabel('hairColor', selectedAvatar.hairColor)}`;
-    if (summaryAccessory) summaryAccessory.textContent = getAvatarLabel('accessory', selectedAvatar.accessory);
+    if (summarySuit) summarySuit.textContent = summary.visual;
+    if (summaryHair) summaryHair.textContent = summary.hair;
+    if (summaryAccessory) summaryAccessory.textContent = summary.accessory;
+    if (summaryExpression) summaryExpression.textContent = summary.expression;
 };
+
+const AVATAR_CHOICE_GROUPS = [
+    { key: 'preset', title: 'Base do explorador' },
+    { key: 'skinColor', title: 'Tom de pele', swatch: true },
+    { key: 'top', title: 'Cabelo / cobertura' },
+    { key: 'hairColor', title: 'Cor do cabelo', swatch: true },
+    { key: 'clothing', title: 'Roupa inicial' },
+    { key: 'clothesColor', title: 'Cor da roupa', swatch: true },
+    { key: 'accessories', title: 'Óculos / acessório' },
+    { key: 'eyes', title: 'Olhar' },
+    { key: 'mouth', title: 'Expressão' },
+    { key: 'facialHair', title: 'Barba / bigode' }
+];
 
 const renderAvatarChoices = () => {
     const container = modal?.querySelector('#auth-avatar-options');
@@ -89,35 +129,26 @@ const renderAvatarChoices = () => {
 
     const renderButton = (group, option, extraClass = '') => {
         const value = option.id ?? 'none';
-        const isActive = (selectedAvatar[group] ?? null) === option.id || (option.id === null && selectedAvatar[group] === null);
+        const normalizedValue = option.id ?? null;
+        const isActive = (selectedAvatar[group] ?? null) === normalizedValue || (option.id === null && selectedAvatar[group] === null);
         const style = option.color ? ` style="--swatch-color:${option.color}"` : '';
         const label = option.label || value;
         const swatchTitle = option.color ? ` title="${label}" aria-label="${label}"` : '';
-        return `<button class="avatar-choice ${extraClass} ${isActive ? 'active' : ''}" data-avatar-group="${group}" data-avatar-value="${value}" type="button"${style}${swatchTitle}>${option.color ? '' : label}</button>`;
+        const patch = option.patch ? ` data-avatar-patch='${JSON.stringify(option.patch).replaceAll("'", '&apos;')}'` : '';
+        return `<button class="avatar-choice ${extraClass} ${option.color ? 'avatar-swatch' : ''} ${isActive ? 'active' : ''}" data-avatar-group="${group}" data-avatar-value="${value}" type="button"${style}${swatchTitle}${patch}>${option.color ? '' : label}</button>`;
     };
 
-    container.innerHTML = `
-        <div class="avatar-option-group">
-            <span>Tom de pele</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.skin.map((option) => renderButton('skin', option, 'avatar-swatch')).join('')}</div>
-        </div>
-        <div class="avatar-option-group">
-            <span>Traje inicial</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.suit.map((option) => renderButton('suit', option)).join('')}</div>
-        </div>
-        <div class="avatar-option-group">
-            <span>Cabelo</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.hair.map((option) => renderButton('hair', option)).join('')}</div>
-        </div>
-        <div class="avatar-option-group">
-            <span>Cor do cabelo</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.hairColor.map((option) => renderButton('hairColor', option, 'avatar-swatch')).join('')}</div>
-        </div>
-        <div class="avatar-option-group">
-            <span>Acessório inicial</span>
-            <div class="avatar-choice-row">${AVATAR_OPTIONS.accessory.map((option) => renderButton('accessory', option)).join('')}</div>
-        </div>
-    `;
+    container.innerHTML = AVATAR_CHOICE_GROUPS.map((group) => {
+        const options = AVATAR_OPTIONS[group.key] || [];
+        if (!options.length) return '';
+
+        return `
+            <div class="avatar-option-group avatar-option-group-${group.key}">
+                <span>${group.title}</span>
+                <div class="avatar-choice-row">${options.map((option) => renderButton(group.key, option, group.swatch ? 'avatar-swatch' : '')).join('')}</div>
+            </div>
+        `;
+    }).join('');
 };
 
 const syncSignupStepUI = () => {
@@ -439,7 +470,7 @@ const validateForm = ({ skipCaptcha = false } = {}) => {
         throw new Error('Complete a verificação antes de entrar.');
     }
 
-    return { email, password, explorerName, avatar: normalizeAvatar(selectedAvatar) };
+    return { email, password, explorerName, avatar: getAvatarWithCurrentSeed() };
 };
 
 const updateNavSession = (session) => {
@@ -668,7 +699,7 @@ const createModal = () => {
                                 <div class="avatar-preview-wrap">
                                     <span class="avatar-preview-title">Seu explorador</span>
                                     <div id="auth-avatar-preview"></div>
-                                    <p class="avatar-preview-subtitle">Esse é o visual inicial. Depois, a Loja Cósmica vai liberar itens melhores.</p>
+                                    <p class="avatar-preview-subtitle">Esse é o avatar Avataaars inicial. Depois, a Loja Cósmica vai liberar itens e cosméticos melhores.</p>
                                 </div>
                                 <div class="avatar-options" id="auth-avatar-options"></div>
                             </div>
@@ -681,9 +712,10 @@ const createModal = () => {
                                     <span class="auth-kicker">PRONTO PARA PARTIR</span>
                                     <strong id="auth-confirm-name">Explorador</strong>
                                     <span id="auth-confirm-email">e-mail ainda não informado</span>
-                                    <p>Traje: <b id="auth-confirm-suit">Azul T.A.R.D.I.S.</b></p>
-                                    <p>Cabelo: <b id="auth-confirm-hair">Curto</b></p>
-                                    <p>Acessório: <b id="auth-confirm-accessory">Sem acessório</b></p>
+                                    <p>Visual: <b id="auth-confirm-suit">Avataaars</b></p>
+                                    <p>Cabelo: <b id="auth-confirm-hair">Personalizado</b></p>
+                                    <p>Acessório: <b id="auth-confirm-accessory">Sem óculos</b></p>
+                                    <p>Expressão: <b id="auth-confirm-expression">Normal</b></p>
                                 </div>
                             </div>
                         </div>
@@ -727,9 +759,21 @@ const createModal = () => {
         if (!choice) return;
         const group = choice.dataset.avatarGroup;
         const rawValue = choice.dataset.avatarValue;
+        const value = rawValue === 'none' ? null : rawValue;
+        let patch = {};
+
+        try {
+            patch = choice.dataset.avatarPatch ? JSON.parse(choice.dataset.avatarPatch) : {};
+        } catch (_error) {
+            patch = {};
+        }
+
         selectedAvatar = normalizeAvatar({
             ...selectedAvatar,
-            [group]: rawValue === 'none' ? null : rawValue
+            avatarProvider: 'dicebear',
+            dicebearStyle: 'avataaars',
+            [group]: value,
+            ...patch
         });
         renderAvatarChoices();
         updateAvatarPreview();
