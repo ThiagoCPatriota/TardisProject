@@ -28,6 +28,7 @@ import {
     getBadgeScoreUnits,
     getMaxAdventureScore
 } from './adventureScore.js';
+import { emitAchievementEvent } from '../achievements/achievementEvents.js';
 
 // --- STATE ---
 let guidedModeActive = false;
@@ -38,13 +39,11 @@ let questions = [];
 let hasAnswered = false;
 let badgesEarned = 0;
 let progressHistory = [];
+let currentCorrectStreak = 0;
 let overlay = null;
 let adventureBtn = null;
 let typewriterTimer = null;
 
-const emitAchievementEvent = (type, detail = {}) => {
-    window.dispatchEvent(new CustomEvent(`tardis:${type}`, { detail }));
-};
 
 // Lazy-loaded modules
 let planetViewer = null;
@@ -272,6 +271,7 @@ const startTour = async () => {
     score = 0;
     hasAnswered = false;
     progressHistory = [];
+    currentCorrectStreak = 0;
 
     // Restore progress from localStorage
     const today = new Date().toISOString().split('T')[0];
@@ -291,7 +291,7 @@ const startTour = async () => {
     }
 
     guidedModeActive = true;
-    emitAchievementEvent('adventure-started', { totalQuestions: totalSteps });
+    emitAchievementEvent('adventureStarted', { totalQuestions: totalSteps }, ['adventure-started']);
 
     // Update button
     if (adventureBtn) {
@@ -465,14 +465,20 @@ const checkAnswer = (selectedIndex) => {
 
         markProgressDot(currentStep, 'correct');
         progressHistory[currentStep] = 'correct';
+        currentCorrectStreak += 1;
         saveProgress();
-        emitAchievementEvent('question-answered', {
+
+        const answerDetail = {
             correct: true,
             planetName: q.planetName,
             planetNameEN: q.planetNameEN,
             currentScore: score,
-            questionIndex: currentStep
-        });
+            questionIndex: currentStep,
+            streak: currentCorrectStreak
+        };
+
+        emitAchievementEvent('questionAnswered', answerDetail, ['question-answered']);
+        emitAchievementEvent('quizStreak', answerDetail);
 
         const actionBtn = document.getElementById('quiz-action-btn');
         actionBtn.textContent = currentStep >= totalSteps - 1
@@ -508,14 +514,16 @@ const checkAnswer = (selectedIndex) => {
         });
 
         progressHistory[currentStep] = 'wrong';
+        currentCorrectStreak = 0;
         saveProgress();
-        emitAchievementEvent('question-answered', {
+        emitAchievementEvent('questionAnswered', {
             correct: false,
             planetName: q.planetName,
             planetNameEN: q.planetNameEN,
             currentScore: score,
-            questionIndex: currentStep
-        });
+            questionIndex: currentStep,
+            streak: currentCorrectStreak
+        }, ['question-answered']);
     }
 };
 
@@ -551,13 +559,25 @@ const showCompletion = () => {
     const pct = getAdventureScorePercent(score, totalSteps);
     const earned = BADGE_DEFINITIONS.filter(b => getBadgeScoreUnits(score) >= b.threshold);
 
-    emitAchievementEvent('adventure-completed', {
+    const completionDetail = {
         score,
         maxScore,
         percent: pct,
         totalQuestions: totalSteps,
-        perfect: progressHistory.length === totalSteps && progressHistory.every(status => status === 'correct')
-    });
+        perfect: progressHistory.length === totalSteps && progressHistory.every(status => status === 'correct'),
+        bestStreak: progressHistory.reduce((best, status, index) => {
+            if (status !== 'correct') return best;
+            let streak = 0;
+            for (let i = index; i >= 0 && progressHistory[i] === 'correct'; i -= 1) streak += 1;
+            return Math.max(best, streak);
+        }, 0)
+    };
+
+    emitAchievementEvent('adventureCompleted', completionDetail, ['adventure-completed']);
+    if (completionDetail.perfect) {
+        emitAchievementEvent('quizPerfectRun', completionDetail);
+    }
+    currentCorrectStreak = 0;
 
     // Hide planet viewer in completion
     document.getElementById('quiz-planet-badge').style.display = 'none';

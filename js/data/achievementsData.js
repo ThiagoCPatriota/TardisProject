@@ -1327,5 +1327,237 @@ export const ACHIEVEMENTS_DATA = [
             "type": "balanced_explorer"
         },
         "progressLabel": "etapas"
+    },
+    {
+        "id": "apod-observador-3",
+        "title": "Olho na NASA",
+        "description": "Veja a APOD em 3 dias diferentes.",
+        "detail": "A T.A.R.D.I.S. percebe quando você volta para observar novas janelas reais do universo pela imagem astronômica do dia.",
+        "category": "Cientista Cósmico",
+        "rarity": "uncommon",
+        "image": "assets/achievements/apod-aberto-3.svg",
+        "maxProgress": 3,
+        "pointsReward": 30,
+        "hidden": false,
+        "trigger": {
+            "type": "apod_viewed_day"
+        },
+        "progressLabel": "dias"
+    },
+    {
+        "id": "arquivo-orbital",
+        "title": "Arquivo Orbital",
+        "description": "Abra 5 dossiês de missões orbitais.",
+        "detail": "Você está seguindo missões que não apenas passaram pelos mundos, mas ficaram em órbita para estudá-los com paciência científica.",
+        "category": "Mestre das Missões",
+        "rarity": "rare",
+        "image": "assets/achievements/missoes-unicas-5.svg",
+        "maxProgress": 5,
+        "pointsReward": 50,
+        "hidden": false,
+        "trigger": {
+            "type": "mission_type_unique",
+            "keywords": ["orbitador", "orbital", "órbita"]
+        },
+        "progressLabel": "missões"
+    },
+    {
+        "id": "cacador-de-sondas",
+        "title": "Caçador de Sondas",
+        "description": "Abra 5 dossiês de sondas ou missões de sobrevoo.",
+        "detail": "Você rastreou missões rápidas, ousadas e precisas, daquelas que cruzam o espaço para capturar dados no momento certo.",
+        "category": "Mestre das Missões",
+        "rarity": "rare",
+        "image": "assets/achievements/rota-extrema.svg",
+        "maxProgress": 5,
+        "pointsReward": 45,
+        "hidden": false,
+        "trigger": {
+            "type": "mission_type_unique",
+            "keywords": ["sonda", "sondas", "sobrevoo"]
+        },
+        "progressLabel": "missões"
+    },
+    {
+        "id": "eco-da-humanidade",
+        "title": "Eco da Humanidade",
+        "description": "Abra um dossiê de missão tripulada.",
+        "detail": "Em meio a sondas e orbitadores, você encontrou o rastro humano da exploração espacial.",
+        "category": "Mestre das Missões",
+        "rarity": "uncommon",
+        "image": "assets/achievements/missao-terra-apollo-11.svg",
+        "maxProgress": 1,
+        "pointsReward": 45,
+        "hidden": false,
+        "trigger": {
+            "type": "mission_type_first",
+            "keywords": ["tripulada", "tripulado", "tripulante"]
+        }
+    },
+    {
+        "id": "missoes-em-atividade",
+        "title": "Sinais em Operação",
+        "description": "Abra 3 dossiês de missões ativas ou em operação prolongada.",
+        "detail": "Você encontrou missões que ainda enviam sinais, dados e novas perguntas para a ciência.",
+        "category": "Mestre das Missões",
+        "rarity": "rare",
+        "image": "assets/achievements/missoes-abertas-3.svg",
+        "maxProgress": 3,
+        "pointsReward": 40,
+        "hidden": false,
+        "trigger": {
+            "type": "mission_status_unique",
+            "keywords": ["ativa", "operação prolongada", "em rota", "missão ativa"]
+        },
+        "progressLabel": "missões"
+    },
+    {
+        "id": "cartografo-rochoso",
+        "title": "Cartógrafo Rochoso",
+        "description": "Visite todos os planetas rochosos.",
+        "detail": "Mercúrio, Vênus, Terra e Marte formam a trilha interna do Sistema Solar. Você completou esse mapa de mundos sólidos.",
+        "category": "Explorador Planetário",
+        "rarity": "uncommon",
+        "image": "assets/achievements/mundos-rochosos.svg",
+        "maxProgress": 1,
+        "pointsReward": 45,
+        "hidden": false,
+        "trigger": {
+            "type": "planet_category_complete",
+            "category": "rocky"
+        }
+    },
+    {
+        "id": "colosso-exterior",
+        "title": "Colosso Exterior",
+        "description": "Visite Júpiter, Saturno, Urano e Netuno.",
+        "detail": "Você cruzou a fronteira dos gigantes externos e registrou os grandes mundos que dominam a parte distante do Sistema Solar.",
+        "category": "Explorador Planetário",
+        "rarity": "rare",
+        "image": "assets/achievements/gigantes-classicos.svg",
+        "maxProgress": 1,
+        "pointsReward": 65,
+        "hidden": false,
+        "trigger": {
+            "type": "planet_category_complete",
+            "category": "outer_giant"
+        }
+    },
+    {
+        "id": "dupla-gelada",
+        "title": "Dupla Gelada",
+        "description": "Visite Urano e Netuno.",
+        "detail": "Os gigantes gelados ficam longe, frios e misteriosos. Você alcançou os dois extremos azulados da rota planetária.",
+        "category": "Explorador Planetário",
+        "rarity": "uncommon",
+        "image": "assets/achievements/gigantes-gelados.svg",
+        "maxProgress": 2,
+        "pointsReward": 30,
+        "hidden": false,
+        "trigger": {
+            "type": "planet_category_unique",
+            "category": "ice_giant"
+        },
+        "progressLabel": "mundos"
+    },
+    {
+        "id": "sequencia-3",
+        "title": "Sequência Temporal",
+        "description": "Acerte 3 perguntas seguidas no Modo Aventura.",
+        "detail": "A T.A.R.D.I.S. detectou uma sequência estável de raciocínio: três respostas certas sem quebrar o fluxo.",
+        "category": "Aprendiz do Doutor",
+        "rarity": "uncommon",
+        "image": "assets/achievements/acertos-5.svg",
+        "maxProgress": 1,
+        "pointsReward": 25,
+        "hidden": false,
+        "trigger": {
+            "type": "quiz_streak",
+            "streak": 3
+        }
+    },
+    {
+        "id": "sequencia-7",
+        "title": "Pulso do Vórtex",
+        "description": "Acerte 7 perguntas seguidas no Modo Aventura.",
+        "detail": "Uma sequência longa o bastante para parecer cálculo de Time Lord. Poucos viajantes mantêm o pulso tão estável.",
+        "category": "Caçador de Segredos",
+        "rarity": "epic",
+        "image": "assets/achievements/acertos-10.svg",
+        "maxProgress": 1,
+        "pointsReward": 75,
+        "hidden": true,
+        "trigger": {
+            "type": "quiz_streak",
+            "streak": 7
+        }
+    },
+    {
+        "id": "piloto-impecavel",
+        "title": "Piloto Impecável",
+        "description": "Complete uma aventura perfeita.",
+        "detail": "Nenhum desvio, nenhuma falha, nenhuma rachadura no tempo: sua rodada saiu perfeita do início ao fim.",
+        "category": "Aprendiz do Doutor",
+        "rarity": "epic",
+        "image": "assets/achievements/desempenho-100.svg",
+        "maxProgress": 1,
+        "pointsReward": 80,
+        "hidden": false,
+        "trigger": {
+            "type": "quiz_perfect_run"
+        }
+    },
+    {
+        "id": "companheiro-brilhante",
+        "title": "Companheiro Brilhante",
+        "description": "Complete uma aventura com 95% ou mais de desempenho.",
+        "detail": "Você não foi apenas bem: sua performance brilhou como um sinal claro no painel da T.A.R.D.I.S.",
+        "category": "Aprendiz do Doutor",
+        "rarity": "rare",
+        "image": "assets/achievements/desempenho-90.svg",
+        "maxProgress": 1,
+        "pointsReward": 70,
+        "hidden": false,
+        "trigger": {
+            "type": "adventure_percent",
+            "percent": 95
+        }
+    },
+    {
+        "id": "explorador-equilibrado-ii",
+        "title": "Explorador Equilibrado II",
+        "description": "Visite 4 planetas, abra 4 dossiês e acerte 5 perguntas.",
+        "detail": "Esta conquista acompanha progresso composto: exploração real, leitura de missões e desempenho no Modo Aventura funcionando juntos.",
+        "category": "Lenda da T.A.R.D.I.S.",
+        "rarity": "rare",
+        "image": "assets/achievements/mapa-celeste-completo.svg",
+        "maxProgress": 3,
+        "pointsReward": 95,
+        "hidden": false,
+        "trigger": {
+            "type": "dynamic_compound",
+            "requirements": {
+                "visitedPlanets": 4,
+                "viewedMissions": 4,
+                "correctAnswers": 5
+            }
+        },
+        "progressLabel": "etapas"
+    },
+    {
+        "id": "chave-do-vortice",
+        "title": "Chave do Vórtex",
+        "description": "Desbloqueie uma combinação secreta de exploração, observação e desempenho.",
+        "detail": "Você alinhou uma rota extrema, observou o universo real pela APOD e completou uma aventura perfeita. A T.A.R.D.I.S. reconheceu o padrão.",
+        "category": "Caçador de Segredos",
+        "rarity": "legendary",
+        "image": "assets/achievements/rota-extrema.svg",
+        "maxProgress": 3,
+        "pointsReward": 140,
+        "hidden": true,
+        "trigger": {
+            "type": "secret_vortex"
+        },
+        "progressLabel": "sinais"
     }
 ];

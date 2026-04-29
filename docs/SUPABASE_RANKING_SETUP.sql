@@ -1,9 +1,0 @@
--- T.A.R.D.I.S. Project — Ranking
--- ATUALIZADO: o ranking agora deve ser configurado por Pontos de Exploração.
---
--- Não use mais o setup antigo por quantidade de conquistas.
--- Execute no SQL Editor o arquivo:
---
--- docs/SUPABASE_RANKING_POINTS_SETUP.sql
---
--- Este arquivo foi mantido apenas como aviso para evitar recriar a função antiga.
