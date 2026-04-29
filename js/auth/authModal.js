@@ -697,7 +697,6 @@ const createModal = () => {
                                 <div class="avatar-preview-wrap">
                                     <span class="avatar-preview-title">Seu explorador</span>
                                     <div id="auth-avatar-preview"></div>
-                                    <p class="avatar-preview-subtitle">Escolha um visual inicial. O preview troca sem apagar a imagem anterior, para evitar carregamento feio.</p>
                                 </div>
                                 <div class="avatar-options" id="auth-avatar-options"></div>
                             </div>

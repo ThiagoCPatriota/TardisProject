@@ -416,3 +416,100 @@
   background: rgba(56, 189, 248, 0.38);
   border-radius: 999px;
 }
+
+/* === V39: polimento visual do formulário de autenticação === */
+.auth-panel.avatar-flow-active .auth-step-panel[data-auth-step-panel="account"] {
+  display: none;
+  gap: 18px;
+}
+
+.auth-panel.avatar-flow-active .auth-step-panel[data-auth-step-panel="account"].active {
+  display: grid;
+}
+
+.auth-panel.avatar-flow-active .auth-field {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-panel.avatar-flow-active .auth-field label {
+  margin-bottom: 0;
+  line-height: 1.2;
+}
+
+.auth-panel.avatar-flow-active .auth-password-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+.auth-panel.avatar-flow-active .auth-local-challenge {
+  margin-top: 2px;
+}
+
+.auth-panel.avatar-flow-active .auth-form-actions {
+  margin-top: 18px;
+}
+
+.avatar-preview-wrap {
+  gap: 12px;
+}
+
+.avatar-preview-subtitle {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .auth-panel.avatar-flow-active .auth-password-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* === V40: espaçamento específico da aba Login === */
+.auth-panel:not(.avatar-flow-active) .auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-panel:not(.avatar-flow-active) .auth-tabs {
+  margin-bottom: 8px;
+}
+
+.auth-panel:not(.avatar-flow-active) .auth-step-panel[data-auth-step-panel="account"].active {
+  display: grid;
+  gap: 18px;
+}
+
+.auth-panel:not(.avatar-flow-active) .auth-field {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-panel:not(.avatar-flow-active) .auth-field label {
+  margin-bottom: 0;
+  line-height: 1.2;
+}
+
+.auth-panel:not(.avatar-flow-active) .auth-password-row {
+  display: block;
+  margin-top: 2px;
+}
+
+.auth-panel:not(.avatar-flow-active) .auth-password-row .auth-field {
+  width: 100%;
+  max-width: 100%;
+}
+
+.auth-panel:not(.avatar-flow-active) .auth-password-row input,
+.auth-panel:not(.avatar-flow-active) #auth-email {
+  width: 100%;
+}
+
+.auth-panel:not(.avatar-flow-active) .auth-submit {
+  margin-top: 6px;
+}
+
+.auth-panel:not(.avatar-flow-active) .auth-message.active {
+  margin-top: 10px;
+}
