@@ -123,7 +123,6 @@ const ensureExplorerProfile = async (session) => {
                 user_id: session.user.id,
                 explorer_name: getExplorerName(session.user),
                 avatar: session.user.user_metadata?.avatar || DEFAULT_AVATAR,
-                equipped_cosmetics: {},
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
     } catch (error) {

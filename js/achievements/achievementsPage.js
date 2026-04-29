@@ -17,6 +17,7 @@ import {
     getLastAchievementSyncError
 } from './achievementStore.js';
 import { getCurrentSession, onAuthStateChange } from '../auth/authService.js';
+import { emitAchievementEvent, getTardisEventName } from './achievementEvents.js';
 
 let page = null;
 let grid = null;
@@ -108,6 +109,52 @@ const updateNavCount = (state = loadAchievementState()) => {
 };
 
 const normalizeKey = (value = '') => String(value).trim();
+const normalizeComparable = (value = '') => String(value)
+    .trim()
+    .toLocaleLowerCase('pt-BR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+const ROCKY_PLANETS = ['Mercury', 'Venus', 'Earth', 'Mars'];
+const OUTER_GIANT_PLANETS = ['Jupiter', 'Saturn', 'Uranus', 'Neptune'];
+const ICE_GIANT_PLANETS = ['Uranus', 'Neptune'];
+
+const PLANET_CATEGORY_MAP = {
+    rocky: ROCKY_PLANETS,
+    outer_giant: OUTER_GIANT_PLANETS,
+    gas_giant: OUTER_GIANT_PLANETS,
+    ice_giant: ICE_GIANT_PLANETS
+};
+
+const processedAchievementEventIds = new Set();
+const emittedDerivedCategoryEvents = new Set();
+
+const shouldProcessAchievementEvent = (detail = {}) => {
+    const eventId = detail.achievementEventId;
+    if (!eventId) return true;
+    if (processedAchievementEventIds.has(eventId)) return false;
+
+    processedAchievementEventIds.add(eventId);
+    window.setTimeout(() => processedAchievementEventIds.delete(eventId), 6000);
+    return true;
+};
+
+const addTardisEventListener = (eventNames, handler) => {
+    const names = Array.isArray(eventNames) ? eventNames : [eventNames];
+    names.filter(Boolean).forEach((eventName) => {
+        window.addEventListener(getTardisEventName(eventName), (event) => {
+            if (!shouldProcessAchievementEvent(event.detail || {})) return;
+            handler(event);
+        });
+    });
+};
+
+const arrayIncludesNormalized = (values = [], text = '') => {
+    const normalizedText = normalizeComparable(text);
+    return values.some((value) => normalizedText.includes(normalizeComparable(value)));
+};
+
+const getCategoryPlanets = (category) => PLANET_CATEGORY_MAP[category] || [];
 
 const getTriggeredAchievements = (type, predicate = () => true) => {
     return ACHIEVEMENTS_DATA.filter((achievement) => {
@@ -176,6 +223,42 @@ const trackPlanetGroups = (planetNameEN) => {
         planetNameEN,
         (trigger) => Array.isArray(trigger.planets) && trigger.planets.includes(planetNameEN)
     );
+};
+
+const trackPlanetCategories = (planetNameEN) => {
+    Object.entries(PLANET_CATEGORY_MAP).forEach(([category, planets]) => {
+        if (!planets.includes(planetNameEN)) return;
+
+        trackTriggeredUnique(
+            'planet_category_unique',
+            `planetCategory_${category}`,
+            planetNameEN,
+            (trigger) => trigger.category === category
+        );
+    });
+};
+
+const dispatchPlanetCategoryCompletionEvents = (state = loadAchievementState()) => {
+    const visited = getAchievementEntry(state, 'mapa-celeste-completo').meta?.visitedPlanets || [];
+    const hasVisitedAll = (planets) => planets.every((planet) => visited.includes(planet));
+
+    if (hasVisitedAll(ROCKY_PLANETS) && !emittedDerivedCategoryEvents.has('rocky')) {
+        emittedDerivedCategoryEvents.add('rocky');
+        emitAchievementEvent('allRockyPlanetsVisited', {
+            category: 'rocky',
+            planets: ROCKY_PLANETS,
+            visitedPlanets: visited
+        });
+    }
+
+    if (hasVisitedAll(OUTER_GIANT_PLANETS) && !emittedDerivedCategoryEvents.has('outer_giant')) {
+        emittedDerivedCategoryEvents.add('outer_giant');
+        emitAchievementEvent('allGasGiantsVisited', {
+            category: 'outer_giant',
+            planets: OUTER_GIANT_PLANETS,
+            visitedPlanets: visited
+        });
+    }
 };
 
 const trackDetailGroups = (planetNameEN) => {
@@ -259,6 +342,100 @@ const syncBalancedExplorer = (state = loadAchievementState()) => {
     }
 };
 
+let syncingPlanetCategoryComplete = false;
+
+const syncPlanetCategoryCompletionAchievements = (state = loadAchievementState()) => {
+    if (!hasActiveAchievementUser() || syncingPlanetCategoryComplete) return;
+
+    const visited = getAchievementEntry(state, 'mapa-celeste-completo').meta?.visitedPlanets || [];
+    const categoryCompleted = (category) => getCategoryPlanets(category).every((planet) => visited.includes(planet));
+
+    syncingPlanetCategoryComplete = true;
+    try {
+        getTriggeredAchievements('planet_category_complete').forEach((achievement) => {
+            const category = achievement.trigger?.category;
+            if (!category || !categoryCompleted(category)) return;
+            unlockAchievement(achievement.id, { category, visitedPlanets: visited });
+        });
+    } finally {
+        syncingPlanetCategoryComplete = false;
+    }
+};
+let syncingDynamicCompound = false;
+let syncingSecretVortex = false;
+
+const syncDynamicCompoundAchievements = (state = loadAchievementState()) => {
+    if (!hasActiveAchievementUser() || syncingDynamicCompound) return;
+
+    const compoundAchievements = getTriggeredAchievements('dynamic_compound');
+    if (!compoundAchievements.length) return;
+
+    const visitedPlanets = getMetaCount(state, 'mapa-celeste-completo', 'visitedPlanets');
+    const viewedMissions = getMetaCount(state, 'missoes-unicas-5', 'missions');
+    const correctAnswers = Number(getAchievementEntry(state, 'acertos-10').progress || 0);
+    const apodDays = getMetaCount(state, 'apod-observador-3', 'apodDays');
+
+    syncingDynamicCompound = true;
+    try {
+        compoundAchievements.forEach((achievement) => {
+            const requirements = achievement.trigger?.requirements || {};
+            const steps = [
+                visitedPlanets >= Number(requirements.visitedPlanets || 0),
+                viewedMissions >= Number(requirements.viewedMissions || 0),
+                correctAnswers >= Number(requirements.correctAnswers || 0),
+                !requirements.apodDays || apodDays >= Number(requirements.apodDays || 0)
+            ].filter(Boolean).length;
+
+            const entry = getAchievementEntry(state, achievement.id);
+            const nextProgress = Math.min(steps, achievement.maxProgress);
+            if (!entry.unlockedAt && Number(entry.progress || 0) !== nextProgress) {
+                setAchievementProgress(achievement.id, nextProgress, {
+                    visitedPlanets,
+                    viewedMissions,
+                    correctAnswers,
+                    apodDays
+                });
+            }
+        });
+    } finally {
+        syncingDynamicCompound = false;
+    }
+};
+
+const syncSecretVortexAchievements = (state = loadAchievementState()) => {
+    if (!hasActiveAchievementUser() || syncingSecretVortex) return;
+
+    const secretAchievements = getTriggeredAchievements('secret_vortex');
+    if (!secretAchievements.length) return;
+
+    const visited = getAchievementEntry(state, 'mapa-celeste-completo').meta?.visitedPlanets || [];
+    const routeComplete = ['Sun', 'Mercury', 'Neptune'].every((planet) => visited.includes(planet));
+    const apodDays = getMetaCount(state, 'apod-observador-3', 'apodDays');
+    const perfectRuns = Number(getAchievementEntry(state, 'rodadas-perfeitas-1').progress || 0);
+
+    const steps = [
+        routeComplete,
+        apodDays >= 1,
+        perfectRuns >= 1
+    ].filter(Boolean).length;
+
+    syncingSecretVortex = true;
+    try {
+        secretAchievements.forEach((achievement) => {
+            const entry = getAchievementEntry(state, achievement.id);
+            const nextProgress = Math.min(steps, achievement.maxProgress);
+            if (!entry.unlockedAt && Number(entry.progress || 0) !== nextProgress) {
+                setAchievementProgress(achievement.id, nextProgress, {
+                    routeComplete,
+                    apodDays,
+                    perfectRuns
+                });
+            }
+        });
+    } finally {
+        syncingSecretVortex = false;
+    }
+};
 const requestLoginForAchievements = () => {
     pendingOpenAfterLogin = true;
     document.dispatchEvent(new CustomEvent('tardis:auth-open', {
@@ -840,16 +1017,19 @@ const wireAchievementTriggers = async () => {
         if (event.detail.unlockedAchievement) showAchievementToast(event.detail.unlockedAchievement);
         syncAchievementTotalMilestones(event.detail.state);
         syncBalancedExplorer(event.detail.state);
+        syncPlanetCategoryCompletionAchievements(event.detail.state);
+        syncDynamicCompoundAchievements(event.detail.state);
+        syncSecretVortexAchievements(event.detail.state);
         render();
     });
 
-    window.addEventListener('tardis:adventure-started', () => {
+    addTardisEventListener(['adventureStarted', 'adventure-started'], () => {
         if (!hasActiveAchievementUser()) return;
         unlockTriggered('adventure_started');
         addTriggeredProgress('adventure_started_count', 1);
     });
 
-    window.addEventListener('tardis:question-answered', (event) => {
+    addTardisEventListener(['questionAnswered', 'question-answered'], (event) => {
         if (!hasActiveAchievementUser()) return;
 
         const detail = event.detail || {};
@@ -863,7 +1043,7 @@ const wireAchievementTriggers = async () => {
         }
 
         if (detail.correct) {
-            correctAnswerStreak += 1;
+            correctAnswerStreak = Math.max(correctAnswerStreak + 1, Number(detail.streak || 0));
             unlockTriggered('correct_answer', detail);
             unlockTriggered('correct_answer_streak', { ...detail, streak: correctAnswerStreak }, (trigger) => correctAnswerStreak >= Number(trigger.streak || 0));
             addTriggeredProgress('correct_answer_count', 1, detail);
@@ -874,7 +1054,14 @@ const wireAchievementTriggers = async () => {
         }
     });
 
-    window.addEventListener('tardis:adventure-completed', (event) => {
+    addTardisEventListener('quizStreak', (event) => {
+        if (!hasActiveAchievementUser()) return;
+        const detail = event.detail || {};
+        const streak = Number(detail.streak || 0);
+        unlockTriggered('quiz_streak', detail, (trigger) => streak >= Number(trigger.streak || 0));
+    });
+
+    addTardisEventListener(['adventureCompleted', 'adventure-completed'], (event) => {
         if (!hasActiveAchievementUser()) return;
 
         const detail = event.detail || {};
@@ -894,7 +1081,13 @@ const wireAchievementTriggers = async () => {
         unlockTriggered('adventure_percent', detail, (trigger) => percent >= Number(trigger.percent || 0));
     });
 
-    window.addEventListener('tardis:planet-entered', (event) => {
+    addTardisEventListener('quizPerfectRun', (event) => {
+        if (!hasActiveAchievementUser()) return;
+        unlockTriggered('quiz_perfect_run', event.detail || {});
+        addTriggeredProgress('quiz_perfect_run_count', 1, event.detail || {});
+    });
+
+    addTardisEventListener(['planetVisited', 'planet-entered'], (event) => {
         if (!hasActiveAchievementUser()) return;
 
         const detail = event.detail || {};
@@ -907,10 +1100,22 @@ const wireAchievementTriggers = async () => {
             unlockTriggered('planet_first_visit', detail, (trigger) => trigger.planet === planetNameEN);
             addTriggeredProgress('planet_visit_count', 1, detail, (trigger) => trigger.planet === planetNameEN);
             trackPlanetGroups(planetNameEN);
+            trackPlanetCategories(planetNameEN);
+            dispatchPlanetCategoryCompletionEvents(loadAchievementState());
         }
     });
 
-    window.addEventListener('tardis:planetDetailsViewed', (event) => {
+    addTardisEventListener('allRockyPlanetsVisited', (event) => {
+        if (!hasActiveAchievementUser()) return;
+        unlockTriggered('planet_category_complete', event.detail || {}, (trigger) => trigger.category === 'rocky');
+    });
+
+    addTardisEventListener('allGasGiantsVisited', (event) => {
+        if (!hasActiveAchievementUser()) return;
+        unlockTriggered('planet_category_complete', event.detail || {}, (trigger) => ['outer_giant', 'gas_giant'].includes(trigger.category));
+    });
+
+    addTardisEventListener('planetDetailsViewed', (event) => {
         if (!hasActiveAchievementUser()) return;
 
         const detail = event.detail || {};
@@ -926,13 +1131,16 @@ const wireAchievementTriggers = async () => {
         }
     });
 
-    window.addEventListener('tardis:missionViewed', (event) => {
+    addTardisEventListener('missionViewed', (event) => {
         if (!hasActiveAchievementUser()) return;
 
         const detail = event.detail || {};
         const planet = normalizeKey(detail.planet);
         const mission = normalizeKey(detail.mission);
         const missionKey = planet && mission ? `${planet}::${mission}` : mission;
+        const missionType = detail.type || '';
+        const missionStatus = detail.status || '';
+        const missionAgency = detail.agency || '';
 
         unlockTriggered('mission_viewed', detail);
         addTriggeredProgress('mission_viewed_count', 1, detail);
@@ -940,7 +1148,13 @@ const wireAchievementTriggers = async () => {
         if (missionKey) {
             trackTriggeredUnique('unique_mission_view', 'missions', missionKey);
             trackMissionGroups(missionKey);
+            trackTriggeredUnique('mission_type_unique', 'missionsByType', missionKey, (trigger) => arrayIncludesNormalized(trigger.keywords || [], missionType));
+            trackTriggeredUnique('mission_status_unique', 'missionsByStatus', missionKey, (trigger) => arrayIncludesNormalized(trigger.keywords || [], missionStatus));
+            trackTriggeredUnique('mission_agency_unique', 'missionsByAgency', missionKey, (trigger) => arrayIncludesNormalized(trigger.agencies || [], missionAgency));
         }
+
+        unlockTriggered('mission_type_first', detail, (trigger) => arrayIncludesNormalized(trigger.keywords || [], missionType));
+        unlockTriggered('mission_status_first', detail, (trigger) => arrayIncludesNormalized(trigger.keywords || [], missionStatus));
 
         if (planet) {
             unlockTriggered('mission_planet_first', detail, (trigger) => trigger.planet === planet);
@@ -952,16 +1166,15 @@ const wireAchievementTriggers = async () => {
         }
     });
 
-    window.addEventListener('tardis:apodOpened', () => {
+    addTardisEventListener(['apodViewed', 'apodOpened'], (event) => {
         if (!hasActiveAchievementUser()) return;
-        unlockTriggered('apod_opened');
-        addTriggeredProgress('apod_opened_count', 1);
-    });
+        const detail = event.detail || {};
+        const today = new Date().toISOString().slice(0, 10);
+        const apodDay = detail.dateKey || detail.date || today;
 
-    document.getElementById('apod-header-click')?.addEventListener('click', () => {
-        if (!hasActiveAchievementUser()) return;
-        unlockTriggered('apod_opened');
-        addTriggeredProgress('apod_opened_count', 1);
+        unlockTriggered('apod_opened', detail);
+        addTriggeredProgress('apod_opened_count', 1, detail);
+        trackTriggeredUnique('apod_viewed_day', 'apodDays', apodDay, (trigger) => !trigger.mediaType || trigger.mediaType === detail.mediaType);
     });
 };
 

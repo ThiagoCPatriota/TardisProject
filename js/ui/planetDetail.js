@@ -4,6 +4,7 @@
 import { PLANET_DETAILS_DATA } from '../data/planetDetails.js';
 import { getMissionDetail } from '../data/missionDetails.js';
 import { fetchNASAGallery } from '../api/nasaApi.js';
+import { emitAchievementEvent } from '../achievements/achievementEvents.js';
 
 const MISSION_DETAIL_STYLE_ID = 'mission-detail-css';
 const MISSION_DETAIL_MODAL_ID = 'mission-detail-modal';
@@ -148,13 +149,15 @@ function openMissionDetail(planetKey, mission) {
     const closeButton = modal.querySelector('.mdm-close');
     closeButton?.focus({ preventScroll: true });
 
-    window.dispatchEvent(new CustomEvent('tardis:missionViewed', {
-        detail: {
-            planet: planetKey,
-            mission: mission.name,
-            year: mission.year
-        }
-    }));
+    emitAchievementEvent('missionViewed', {
+        planet: planetKey,
+        mission: mission.name,
+        year: detail.year || mission.year,
+        type: detail.type || '',
+        agency: detail.agency || '',
+        status: detail.status || '',
+        target: detail.target || ''
+    });
 }
 
 function closeMissionDetail() {
@@ -232,13 +235,11 @@ export function openPlanetDetail(pData) {
 
     modal.classList.add('active');
 
-    window.dispatchEvent(new CustomEvent('tardis:planetDetailsViewed', {
-        detail: {
-            planetName: pData.name,
-            planetNameEN: pData.nameEN,
-            isStar: Boolean(pData.isStar)
-        }
-    }));
+    emitAchievementEvent('planetDetailsViewed', {
+        planetName: pData.name,
+        planetNameEN: pData.nameEN,
+        isStar: Boolean(pData.isStar)
+    });
 
     const searchQuery = pData.isStar ? 'Sun solar' : `planet ${pData.nameEN}`;
     fetchNASAGallery(searchQuery, 8).then(images => {

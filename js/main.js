@@ -28,13 +28,11 @@ import { initTouchControls, setTouchCallbacks } from './input/touchControls.js';
 import { initGuidedTour, isGuidedModeActive } from './ui/guidedTour.js';
 import { initFPSMonitor, updateFPS } from './ui/fpsMonitor.js';
 import { unloadSolarSystemDetails, reloadSolarSystemDetails } from './scene/renderOptimizer.js';
+import { emitAchievementEvent } from './achievements/achievementEvents.js';
 
 // --- CONSTANTS ---
 const MOUSE_ZOOM_STEP = 2.0;
 
-const emitTardisEvent = (type, detail = {}) => {
-    window.dispatchEvent(new CustomEvent(`tardis:${type}`, { detail }));
-};
 
 // --- APP STATE ---
 let currentState = SceneState.SOLAR_SYSTEM;
@@ -98,11 +96,11 @@ const enterPlanet = (pData) => {
         showPlanetInfo(pData);
         fetchNASAImage(pData.nameEN);
 
-        emitTardisEvent('planet-entered', {
+        emitAchievementEvent('planetVisited', {
             planetName: pData.name,
             planetNameEN: pData.nameEN,
             isStar: Boolean(pData.isStar)
-        });
+        }, ['planet-entered']);
 
         setTimeout(() => {
             transitionOverlay.classList.remove('active');

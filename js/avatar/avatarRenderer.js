@@ -1,8 +1,9 @@
 // ============================================
 // T.A.R.D.I.S. — Avatar Renderer
-// Renderização leve do DiceBear Avataaars com cache e sem recarregar preview vazio.
+// Renderização leve do DiceBear Avataaars com cache e suporte a cosméticos.
 // ============================================
 import { DEFAULT_AVATAR, DICEBEAR_BASE_URL, getAvatarSeed, normalizeAvatar } from './avatarData.js';
+import { applyCosmeticsToAvatar, getCosmeticFrameClass, normalizeEquippedCosmetics } from '../data/shopItems.js';
 
 const loadedUrlCache = new Set();
 const loadingUrlPromises = new Map();
@@ -22,15 +23,22 @@ const appendParam = (params, key, value) => {
     params.set(key, String(value));
 };
 
+const getCosmeticSignature = (cosmetics = {}) => JSON.stringify(normalizeEquippedCosmetics(cosmetics));
+
+const getVisualAvatar = (avatar = DEFAULT_AVATAR, options = {}) => normalizeAvatar(
+    applyCosmeticsToAvatar(avatar, options.cosmetics || {})
+);
+
 const getCacheKey = (avatar, options = {}) => JSON.stringify({
-    avatar: normalizeAvatar(avatar),
+    avatar: getVisualAvatar(avatar, options),
     compact: Boolean(options.compact),
-    size: options.size || null
+    size: options.size || null,
+    cosmetics: getCosmeticSignature(options.cosmetics || {})
 });
 
 export const getDiceBearAvatarUrl = (avatar = DEFAULT_AVATAR, options = {}) => {
-    const normalized = normalizeAvatar(avatar);
-    const key = getCacheKey(normalized, options);
+    const normalized = getVisualAvatar(avatar, options);
+    const key = getCacheKey(avatar, options);
     if (urlCache.has(key)) return urlCache.get(key);
 
     const size = Number(options.size || (options.compact ? 96 : 220));
@@ -79,22 +87,35 @@ const getInitials = (label = 'Explorador') => {
     return (parts[0]?.[0] || 'E').toUpperCase() + (parts[1]?.[0] || '').toUpperCase();
 };
 
-const renderFallbackHTML = (label = 'Explorador', compact = false) => `
-    <div class="avatar-preview-card avatar-dicebear-card avatar-fallback-card ${compact ? 'avatar-svg-compact' : ''}">
-        <div class="avatar-initials" aria-hidden="true">${escapeHTML(getInitials(label))}</div>
-        ${label ? `<span class="avatar-preview-label">${escapeHTML(label)}</span>` : ''}
-    </div>
-`;
+const getFrameClass = (cosmetics = {}) => {
+    const frameItemId = normalizeEquippedCosmetics(cosmetics || {}).frame || '';
+    return {
+        frameItemId,
+        frameClass: getCosmeticFrameClass(frameItemId)
+    };
+};
+
+const renderFallbackHTML = (label = 'Explorador', compact = false, cosmetics = {}) => {
+    const { frameItemId, frameClass } = getFrameClass(cosmetics);
+
+    return `
+        <div class="avatar-preview-card avatar-dicebear-card avatar-fallback-card ${compact ? 'avatar-svg-compact' : ''}${frameClass ? ` cosmetic-frame ${frameClass}` : ''}" data-cosmetic-frame="${escapeHTML(frameItemId)}">
+            <div class="avatar-initials" aria-hidden="true">${escapeHTML(getInitials(label))}</div>
+            ${label ? `<span class="avatar-preview-label">${escapeHTML(label)}</span>` : ''}
+        </div>
+    `;
+};
 
 export const renderAvatarPreviewHTML = (avatar = DEFAULT_AVATAR, options = {}) => {
-    const normalized = normalizeAvatar(avatar);
+    const normalized = getVisualAvatar(avatar, options);
     const label = options.label || normalized.title || '';
-    const url = getDiceBearAvatarUrl(normalized, options);
+    const url = getDiceBearAvatarUrl(avatar, options);
     const sizeClass = options.compact ? ' avatar-svg-compact' : '';
+    const { frameItemId, frameClass } = getFrameClass(options.cosmetics || {});
     const title = label || 'Avatar do explorador';
 
     return `
-        <div class="avatar-preview-card avatar-dicebear-card${sizeClass}" aria-label="${escapeHTML(title)}" data-avatar-provider="dicebear">
+        <div class="avatar-preview-card avatar-dicebear-card${sizeClass}${frameClass ? ` cosmetic-frame ${frameClass}` : ''}" aria-label="${escapeHTML(title)}" data-avatar-provider="dicebear" data-cosmetic-frame="${escapeHTML(frameItemId)}">
             <img class="avatar-dicebear-img" src="${escapeHTML(url)}" alt="${escapeHTML(title)}" loading="lazy" decoding="async" referrerpolicy="no-referrer">
             ${label ? `<span class="avatar-preview-label">${escapeHTML(label)}</span>` : ''}
         </div>
@@ -129,31 +150,34 @@ export const preloadAvatar = (avatar = DEFAULT_AVATAR, options = {}) => {
 export const renderAvatarInto = (container, avatar = DEFAULT_AVATAR, options = {}) => {
     if (!container) return;
 
-    const normalized = normalizeAvatar(avatar);
+    const normalized = getVisualAvatar(avatar, options);
     const label = options.label || normalized.title || 'Explorador';
-    const url = getDiceBearAvatarUrl(normalized, options);
+    const url = getDiceBearAvatarUrl(avatar, options);
     const compact = Boolean(options.compact);
+    const signature = `${url}::${getCosmeticSignature(options.cosmetics || {})}`;
 
-    if (container.dataset.avatarUrl === url) return;
+    if (container.dataset.avatarSignature === signature) return;
 
     // Primeiro render: mostra fallback leve imediatamente.
     if (!container.querySelector('.avatar-dicebear-card')) {
-        container.innerHTML = renderFallbackHTML(label, compact);
+        container.innerHTML = renderFallbackHTML(label, compact, options.cosmetics || {});
     }
 
     container.classList.add('avatar-loading-soft');
 
-    preloadAvatar(normalized, options)
+    preloadAvatar(avatar, options)
         .then((loadedUrl) => {
             if (!container.isConnected) return;
             container.dataset.avatarUrl = loadedUrl;
-            container.innerHTML = renderAvatarPreviewHTML(normalized, options);
+            container.dataset.avatarSignature = signature;
+            container.innerHTML = renderAvatarPreviewHTML(avatar, options);
             container.classList.remove('avatar-loading-soft');
         })
         .catch(() => {
             if (!container.isConnected) return;
             container.dataset.avatarUrl = 'fallback';
-            container.innerHTML = renderFallbackHTML(label, compact);
+            container.dataset.avatarSignature = signature;
+            container.innerHTML = renderFallbackHTML(label, compact, options.cosmetics || {});
             container.classList.remove('avatar-loading-soft');
         });
 };

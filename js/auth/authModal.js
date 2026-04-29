@@ -13,7 +13,8 @@ import {
 } from './authService.js';
 import { isFPSMonitorVisible, setFPSMonitorVisible } from '../ui/fpsMonitor.js';
 import { DEFAULT_AVATAR, AVATAR_OPTIONS, normalizeAvatar, getAvatarOption } from '../avatar/avatarData.js';
-import { renderAvatarInto, renderAvatarPreviewHTML } from '../avatar/avatarRenderer.js';
+import { renderAvatarInto } from '../avatar/avatarRenderer.js';
+import { SHOP_ITEMS, getItemSlotLabel, getOwnedItemIds, isItemOwned, normalizeEquippedCosmetics } from '../data/shopItems.js';
 
 let mode = 'signup';
 let modal = null;
@@ -39,6 +40,7 @@ let selectedAvatar = normalizeAvatar(DEFAULT_AVATAR);
 let accountStepValidated = false;
 let avatarPreviewTimer = null;
 let accountAvatarPreview = null;
+let accountInventoryGrid = null;
 
 const SELECTORS = {
     explorerName: '#auth-explorer-name',
@@ -243,6 +245,68 @@ const updateAccountPoints = (points = 0, fragments = 0) => {
     if (accountExplorationPoints) accountExplorationPoints.textContent = Number(points || 0);
     if (accountStarFragments) accountStarFragments.textContent = Number(fragments || 0);
 };
+
+const escapeHTML = (value = '') => String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+
+const getCurrentProfileSnapshot = () => {
+    const snapshot = window.TardisProfileProgress?.getSnapshot?.() || {};
+    return {
+        avatar: snapshot.avatar || DEFAULT_AVATAR,
+        ownedCosmetics: getOwnedItemIds(snapshot.ownedCosmetics || []),
+        equippedCosmetics: normalizeEquippedCosmetics(snapshot.equippedCosmetics || {}),
+        starFragments: Number(snapshot.starFragments || 0),
+        explorationPoints: Number(snapshot.explorationPoints || 0)
+    };
+};
+
+const setProfileTab = (tab = 'summary') => {
+    modal?.querySelectorAll('[data-auth-profile-tab]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.authProfileTab === tab);
+    });
+
+    modal?.querySelectorAll('[data-auth-profile-panel]').forEach((panel) => {
+        panel.classList.toggle('active', panel.dataset.authProfilePanel === tab);
+    });
+};
+
+const renderAccountInventory = () => {
+    if (!accountInventoryGrid) return;
+
+    const snapshot = getCurrentProfileSnapshot();
+    const ownedItems = SHOP_ITEMS.filter((item) => isItemOwned(item.id, snapshot.ownedCosmetics));
+
+    if (!ownedItems.length) {
+        accountInventoryGrid.innerHTML = `
+            <div class="auth-inventory-empty">
+                <strong>Inventário vazio</strong>
+                <span>Compre cosméticos na Loja Cósmica para aparecerem aqui.</span>
+            </div>
+        `;
+        return;
+    }
+
+    accountInventoryGrid.innerHTML = ownedItems.map((item) => {
+        const equipped = snapshot.equippedCosmetics?.[item.slot] === item.id;
+        return `
+            <article class="auth-inventory-item ${equipped ? 'equipped' : ''}">
+                <span class="auth-inventory-icon" aria-hidden="true">${escapeHTML(item.icon || '✦')}</span>
+                <div class="auth-inventory-copy">
+                    <strong>${escapeHTML(item.label)}</strong>
+                    <span>${escapeHTML(getItemSlotLabel(item.slot))}</span>
+                </div>
+                <button data-auth-inventory-equip="${escapeHTML(item.id)}" type="button" ${equipped ? 'disabled' : ''}>
+                    ${equipped ? 'Equipado' : 'Equipar'}
+                </button>
+            </article>
+        `;
+    }).join('');
+};
+
 
 const syncFPSPreferenceToggle = () => {
     const fpsToggle = modal?.querySelector('#auth-fps-toggle');
@@ -495,7 +559,8 @@ const showAccountView = (session) => {
     updateAccountPoints(profileSnapshot?.explorationPoints || 0, profileSnapshot?.starFragments || 0);
     const avatar = profileSnapshot?.avatar || user?.user_metadata?.avatar || DEFAULT_AVATAR;
     const equippedCosmetics = profileSnapshot?.equippedCosmetics || {};
-    renderAvatarInto(accountAvatarPreview, avatar, { compact: true, size: 96, label: getDisplayName(user) });
+    renderAvatarInto(accountAvatarPreview, avatar, { compact: true, size: 96, label: getDisplayName(user), cosmetics: equippedCosmetics });
+    renderAccountInventory();
     syncFPSPreferenceToggle();
 
     const title = modal?.querySelector('#auth-title');
@@ -630,20 +695,38 @@ const createModal = () => {
                         </div>
                     </div>
 
-                    <div class="auth-preferences" aria-label="Preferências do explorador">
-                        <label class="auth-pref-row" for="auth-fps-toggle">
-                            <span class="auth-pref-copy">
-                                <strong>Monitor de FPS</strong>
-                                <small>Exibir painel de desempenho na tela.</small>
-                            </span>
-                            <span class="auth-switch">
-                                <input id="auth-fps-toggle" type="checkbox">
-                                <span class="auth-switch-track" aria-hidden="true"></span>
-                            </span>
-                        </label>
+                    <div class="auth-profile-tabs" aria-label="Áreas do perfil">
+                        <button class="active" data-auth-profile-tab="summary" type="button">Resumo</button>
+                        <button data-auth-profile-tab="inventory" type="button">Inventário</button>
                     </div>
 
-                    <button class="auth-logout" id="auth-logout" type="button">SAIR DA CONTA</button>
+                    <div class="auth-profile-panel active" data-auth-profile-panel="summary">
+                        <div class="auth-preferences" aria-label="Preferências do explorador">
+                            <label class="auth-pref-row" for="auth-fps-toggle">
+                                <span class="auth-pref-copy">
+                                    <strong>Monitor de FPS</strong>
+                                    <small>Exibir painel de desempenho na tela.</small>
+                                </span>
+                                <span class="auth-switch">
+                                    <input id="auth-fps-toggle" type="checkbox">
+                                    <span class="auth-switch-track" aria-hidden="true"></span>
+                                </span>
+                            </label>
+                        </div>
+
+                        <button class="auth-logout" id="auth-logout" type="button">SAIR DA CONTA</button>
+                    </div>
+
+                    <div class="auth-profile-panel" data-auth-profile-panel="inventory">
+                        <div class="auth-inventory-head">
+                            <div>
+                                <strong>Inventário Cósmico</strong>
+                                <span>Itens comprados e disponíveis para equipar.</span>
+                            </div>
+                            <button id="auth-open-shop" type="button">Abrir Loja</button>
+                        </div>
+                        <div class="auth-inventory-grid" id="auth-inventory-grid"></div>
+                    </div>
                 </div>
 
                 <div class="auth-form-wrapper" id="auth-form-wrapper">
@@ -744,6 +827,7 @@ const createModal = () => {
     accountExplorationPoints = modal.querySelector('#auth-exploration-points');
     accountStarFragments = modal.querySelector('#auth-star-fragments');
     accountAvatarPreview = modal.querySelector('#auth-account-avatar-preview');
+    accountInventoryGrid = modal.querySelector('#auth-inventory-grid');
 
     modal.querySelector('#auth-close')?.addEventListener('click', closeModal);
     modal.querySelector('#auth-backdrop')?.addEventListener('click', closeModal);
@@ -762,6 +846,26 @@ const createModal = () => {
         renderAvatarChoices();
         scheduleAvatarPreviewUpdate();
     });
+    modal.querySelector('.auth-profile-tabs')?.addEventListener('click', (event) => {
+        const tab = event.target.closest?.('[data-auth-profile-tab]');
+        if (!tab) return;
+        setProfileTab(tab.dataset.authProfileTab || 'summary');
+        renderAccountInventory();
+    });
+
+    modal.querySelector('#auth-open-shop')?.addEventListener('click', () => {
+        closeModal();
+        window.TardisCosmicShop?.open?.();
+    });
+
+    modal.querySelector('#auth-inventory-grid')?.addEventListener('click', async (event) => {
+        const button = event.target.closest?.('[data-auth-inventory-equip]');
+        if (!button) return;
+        const itemId = button.dataset.authInventoryEquip;
+        await window.TardisCosmicShop?.equipItem?.(itemId);
+        renderAccountInventory();
+    });
+
     modal.querySelector('#auth-logout')?.addEventListener('click', async () => {
         try {
             await signOut();
@@ -787,7 +891,10 @@ const createModal = () => {
             const currentAvatar = avatar || window.TardisProfileProgress?.getSnapshot?.()?.avatar || DEFAULT_AVATAR;
             renderAvatarInto(accountAvatarPreview, currentAvatar, { compact: true, cosmetics: equippedCosmetics || {} });
         }
+        renderAccountInventory();
     });
+
+    window.addEventListener('tardis:shop-updated', renderAccountInventory);
 
     modal.querySelector('#auth-resend-confirmation')?.addEventListener('click', async () => {
         const email = normalizeEmail(modal.querySelector(SELECTORS.email)?.value || '');
