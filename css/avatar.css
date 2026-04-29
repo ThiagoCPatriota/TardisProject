@@ -380,3 +380,39 @@
     max-height: 70px;
   }
 }
+
+/* === V38: scroll livre no criador de avatar === */
+.auth-panel.avatar-flow-active {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.auth-panel.avatar-flow-active .auth-form {
+  min-height: 0;
+}
+
+.auth-panel.avatar-flow-active .avatar-options {
+  max-height: min(46dvh, 380px);
+  overflow-y: auto;
+  padding-right: 6px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.auth-panel.avatar-flow-active .avatar-choice-row {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.auth-panel.avatar-flow-active .avatar-choice {
+  touch-action: manipulation;
+}
+
+.auth-panel.avatar-flow-active .avatar-options::-webkit-scrollbar {
+  width: 7px;
+}
+
+.auth-panel.avatar-flow-active .avatar-options::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.38);
+  border-radius: 999px;
+}

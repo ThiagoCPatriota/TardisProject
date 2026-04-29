@@ -10,6 +10,8 @@ let isSyncing = false;
 let lastUserId = null;
 let lastKnownPoints = 0;
 let lastKnownFragments = 0;
+let lastKnownAvatar = null;
+let lastKnownEquippedCosmetics = {};
 
 const cleanExplorerName = (name = '') => String(name).trim().replace(/\s+/g, ' ');
 
@@ -21,6 +23,11 @@ const getExplorerName = (user) => {
         metadata.full_name ||
         ''
     ) || 'Explorador';
+};
+
+const getUserAvatar = (user) => {
+    const metadata = user?.user_metadata || {};
+    return metadata.avatar && typeof metadata.avatar === 'object' ? metadata.avatar : null;
 };
 
 const emitProfilePoints = (detail = {}) => {
@@ -40,6 +47,7 @@ const ensureProfileRow = async (session) => {
         id: session.user.id,
         user_id: session.user.id,
         explorer_name: getExplorerName(session.user),
+        avatar: getUserAvatar(session.user),
         updated_at: new Date().toISOString()
     };
 
@@ -54,7 +62,7 @@ const ensureProfileRow = async (session) => {
 
     const { data, error: selectError } = await supabase
         .from('profiles')
-        .select('id, user_id, explorer_name, exploration_points, star_fragments')
+        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -70,7 +78,9 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
         lastUserId = null;
         lastKnownPoints = 0;
         lastKnownFragments = 0;
-        emitProfilePoints({ userId: null });
+        lastKnownAvatar = null;
+        lastKnownEquippedCosmetics = {};
+        emitProfilePoints({ userId: null, avatar: null, equippedCosmetics: {} });
         return null;
     }
 
@@ -89,12 +99,13 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
             .from('profiles')
             .update({
                 explorer_name: getExplorerName(session.user),
+                avatar: getUserAvatar(session.user) || currentProfile?.avatar || {},
                 exploration_points: nextPoints,
                 star_fragments: nextFragments,
                 updated_at: new Date().toISOString()
             })
             .eq('id', session.user.id)
-            .select('exploration_points, star_fragments, explorer_name')
+.select('exploration_points, star_fragments, explorer_name, avatar, equipped_cosmetics')
             .maybeSingle();
 
         if (error) throw error;
@@ -102,10 +113,14 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
         lastUserId = session.user.id;
         lastKnownPoints = Number(data?.exploration_points || nextPoints || 0);
         lastKnownFragments = Number(data?.star_fragments || nextFragments || 0);
+        lastKnownAvatar = data?.avatar || getUserAvatar(session.user) || null;
+        lastKnownEquippedCosmetics = data?.equipped_cosmetics || {};
 
         emitProfilePoints({
             userId: session.user.id,
             explorerName: data?.explorer_name || getExplorerName(session.user),
+            avatar: data?.avatar || getUserAvatar(session.user),
+            equippedCosmetics: data?.equipped_cosmetics || {},
             unlockedCount: getUnlockedCount(state)
         });
 
@@ -134,7 +149,9 @@ const initProfileProgress = async () => {
             lastUserId = null;
             lastKnownPoints = 0;
             lastKnownFragments = 0;
-            emitProfilePoints({ userId: null });
+            lastKnownAvatar = null;
+            lastKnownEquippedCosmetics = {};
+            emitProfilePoints({ userId: null, avatar: null, equippedCosmetics: {} });
             return;
         }
 
@@ -154,7 +171,9 @@ const initProfileProgress = async () => {
         getSnapshot: () => ({
             userId: lastUserId,
             explorationPoints: lastKnownPoints,
-            starFragments: lastKnownFragments
+            starFragments: lastKnownFragments,
+            avatar: lastKnownAvatar,
+            equippedCosmetics: lastKnownEquippedCosmetics
         })
     };
 };

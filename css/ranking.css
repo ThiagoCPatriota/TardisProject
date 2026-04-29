@@ -632,3 +632,48 @@ body.ranking-open {
   height: 38px;
   font-size: 13px;
 }
+
+/* === V38: avatar visual no pódio e ranking === */
+.ranking-avatar-visual {
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  margin: 0 auto 8px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ranking-avatar-visual.compact {
+  width: 54px;
+  height: 54px;
+  margin: 0;
+}
+
+.ranking-avatar-visual .avatar-preview-card {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 999px !important;
+  margin: 0 !important;
+}
+
+.ranking-avatar-visual .avatar-preview-label {
+  display: none !important;
+}
+
+.ranking-avatar-visual .avatar-dicebear-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.ranking-avatar-initials {
+  display: grid;
+  place-items: center;
+}
+
+.ranking-row .ranking-avatar-visual.compact {
+  grid-column: auto;
+}

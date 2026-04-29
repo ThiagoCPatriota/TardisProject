@@ -72,7 +72,7 @@ const ensureConfigured = () => {
     }
 };
 
-export const signUpWithEmail = async ({ email, password, explorerName = '', captchaToken = null }) => {
+export const signUpWithEmail = async ({ email, password, explorerName = '', avatar = null, captchaToken = null }) => {
     ensureConfigured();
 
     const cleanEmail = normalizeEmail(email);
@@ -82,7 +82,8 @@ export const signUpWithEmail = async ({ email, password, explorerName = '', capt
         emailRedirectTo: SUPABASE_CONFIG.authRedirectTo,
         data: {
             explorer_name: cleanExplorerName,
-            display_name: cleanExplorerName
+            display_name: cleanExplorerName,
+            avatar: avatar || null
         }
     };
 
