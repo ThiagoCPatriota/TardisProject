@@ -433,3 +433,47 @@ body.shop-open {
     font-size: 12px;
   }
 }
+
+/* === V38: alinhamento consistente dos itens da Central === */
+#central-menu .central-menu-item,
+#central-menu .nav-profile,
+#central-menu .nav-badges,
+#central-menu .nav-ranking,
+#central-menu .nav-shop {
+  grid-template-columns: 34px minmax(0, 1fr) auto !important;
+  justify-items: stretch !important;
+  text-align: left !important;
+}
+
+#central-menu .nav-profile-icon,
+#central-menu .nav-badges-icon,
+#central-menu .nav-ranking-icon,
+#central-menu .nav-shop-icon,
+#central-menu .nav-action-icon {
+  grid-column: 1 !important;
+  justify-self: center !important;
+  align-self: center !important;
+  margin: 0 !important;
+}
+
+#central-menu .central-menu-copy {
+  grid-column: 2 !important;
+  justify-self: stretch !important;
+  align-self: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+#central-menu .nav-badges-count,
+#central-menu .central-menu-pill {
+  grid-column: 3 !important;
+  justify-self: end !important;
+  align-self: center !important;
+}
+
+#central-menu .nav-auth-label,
+#central-menu .central-menu-copy strong,
+#central-menu .central-menu-copy small {
+  text-align: left !important;
+}

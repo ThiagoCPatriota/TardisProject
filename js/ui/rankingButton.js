@@ -3,6 +3,8 @@
 // Ranking geral baseado em Pontos de Exploração no Supabase.
 // ============================================
 import { supabase, getCurrentSession, onAuthStateChange } from '../auth/authService.js';
+import { renderAvatarPreviewHTML } from '../avatar/avatarRenderer.js';
+import { normalizeAvatar } from '../avatar/avatarData.js';
 
 let rankingPage = null;
 let rankingList = null;
@@ -34,6 +36,33 @@ const getInitials = (name = 'Explorador') => {
     const parts = cleanExplorerName(name).split(' ').filter(Boolean);
     const initials = parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase();
     return initials || 'EX';
+};
+
+const getRowAvatar = (row = {}) => {
+    const avatar = row.avatar || row.profile_avatar || row.user_avatar;
+    return avatar && typeof avatar === 'object' ? avatar : null;
+};
+
+const renderRankingAvatar = (row = {}, options = {}) => {
+    const name = row.explorer_name || 'Explorador';
+    const avatar = getRowAvatar(row);
+    const compact = Boolean(options.compact);
+    const size = options.size || (compact ? 56 : 112);
+
+    if (!avatar) {
+        const className = compact ? 'ranking-row-avatar ranking-avatar-initials' : 'ranking-avatar ranking-avatar-initials';
+        return `<div class="${className}">${escapeHTML(getInitials(name))}</div>`;
+    }
+
+    return `
+        <div class="ranking-avatar-visual ${compact ? 'compact' : ''}">
+            ${renderAvatarPreviewHTML(normalizeAvatar({ ...avatar, seed: avatar.seed || row.user_id || name }), {
+                compact,
+                size,
+                label: ''
+            })}
+        </div>
+    `;
 };
 
 const formatDate = (isoDate) => {
@@ -76,6 +105,7 @@ const ensureExplorerProfile = async (session) => {
                 id: session.user.id,
                 user_id: session.user.id,
                 explorer_name: getExplorerName(session.user),
+                avatar: session.user.user_metadata?.avatar || {},
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
     } catch (error) {
@@ -91,6 +121,36 @@ const getFallbackRanking = async (session) => {
     return [];
 };
 
+const enrichRowsWithProfiles = async (rows = []) => {
+    if (!supabase || !rows.length) return rows;
+
+    const ids = rows.map((row) => row.user_id).filter(Boolean);
+    if (!ids.length) return rows;
+
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, user_id, explorer_name, avatar, equipped_cosmetics')
+            .in('id', ids);
+
+        if (error) throw error;
+
+        const byId = new Map((data || []).map((profile) => [profile.id || profile.user_id, profile]));
+        return rows.map((row) => {
+            const profile = byId.get(row.user_id) || {};
+            return {
+                ...row,
+                explorer_name: row.explorer_name || profile.explorer_name,
+                avatar: row.avatar || profile.avatar || null,
+                equipped_cosmetics: row.equipped_cosmetics || profile.equipped_cosmetics || {}
+            };
+        });
+    } catch (error) {
+        console.warn('[Ranking] Não foi possível carregar avatares dos perfis:', error?.message || error);
+        return rows;
+    }
+};
+
 const loadRankingRows = async (session) => {
     if (!supabase) {
         throw new Error('Supabase ainda não está configurado.');
@@ -104,7 +164,7 @@ const loadRankingRows = async (session) => {
 
     if (error) throw error;
 
-    return Array.isArray(data) ? data : [];
+    return enrichRowsWithProfiles(Array.isArray(data) ? data : []);
 };
 
 const getPodiumOrder = (rows) => {
@@ -136,7 +196,7 @@ const renderPodium = (rows, currentUserId) => {
         return `
             <article class="ranking-podium-card rank-${rank} ${isCurrentUser ? 'current-user' : ''}">
                 <div class="ranking-medal">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</div>
-                <div class="ranking-avatar">${escapeHTML(getInitials(name))}</div>
+                ${renderRankingAvatar(row, { size: 118 })}
                 <span class="ranking-place">${rank}º lugar</span>
                 <h3>${escapeHTML(name)}</h3>
                 <strong>${Number(row.exploration_points ?? row.unlocked_count ?? 0)}</strong>
@@ -166,7 +226,7 @@ const renderList = (rows, currentUserId) => {
         return `
             <article class="ranking-row ${isCurrentUser ? 'current-user' : ''}">
                 <span class="ranking-row-rank">#${Number(row.rank || 0)}</span>
-                <span class="ranking-row-avatar">${escapeHTML(getInitials(name))}</span>
+                ${renderRankingAvatar(row, { compact: true, size: 54 })}
                 <span class="ranking-row-name">
                     <strong>${escapeHTML(name)}</strong>
                     ${isCurrentUser ? '<em>Você</em>' : ''}
