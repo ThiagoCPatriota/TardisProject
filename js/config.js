@@ -12,7 +12,7 @@ if (typeof NASA_API_KEY !== 'undefined') {
 
 // --- CONSTANTES ---
 export const GLOBE_RADIUS = 2.5;
-export const GLOBE_SEGMENTS = 64;
+export const GLOBE_SEGMENTS = 56;
 
 // --- APIs ---
 export const NASA_IMAGE_API = 'https://images-api.nasa.gov/search';
@@ -97,6 +97,8 @@ console.log(`[T.A.R.D.I.S.] Device: ${IS_MOBILE ? 'MOBILE' : 'DESKTOP'} | HQ Tex
 // --- PERFORMANCE ---
 export const GLOBE_SEGMENTS_MOBILE = 32;
 export const EFFECTIVE_SEGMENTS = IS_MOBILE ? GLOBE_SEGMENTS_MOBILE : GLOBE_SEGMENTS;
+export const MAX_RENDER_PIXEL_RATIO = IS_MOBILE ? 1 : 1.5;
+export const RENDER_ANTIALIAS = false;
 
 // --- MOBILE PERFORMANCE TUNING ---
 export const MAX_GLOW_LAYERS = IS_MOBILE ? 1 : 3;

@@ -56,7 +56,7 @@ const createShopPage = () => {
             <div class="shop-preview-grid" aria-label="Prévia da loja cósmica">
                 <article class="shop-preview-card">
                     <strong>Cosméticos</strong>
-                    <span>Coroas, auras, roupas, molduras e acessórios para o avatar.</span>
+                    <span>Coroas, auras, molduras e títulos para personalizar seu perfil.</span>
                 </article>
                 <article class="shop-preview-card">
                     <strong>Fragmentos Estelares</strong>

@@ -76,15 +76,6 @@ const ensureExplorerProfile = async (session) => {
                 id: session.user.id,
                 user_id: session.user.id,
                 explorer_name: getExplorerName(session.user),
-                avatar: {
-                    base: 'explorer_01',
-                    suit: 'basic_blue',
-                    accessory: null,
-                    aura: null,
-                    frame: null,
-                    title: null
-                },
-                equipped_cosmetics: {},
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
     } catch (error) {

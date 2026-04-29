@@ -2,7 +2,7 @@
 // T.A.R.D.I.S. — THREE.JS SCENE SETUP
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
-import { GLOBE_SEGMENTS, IS_MOBILE } from '../config.js';
+import { EFFECTIVE_SEGMENTS, MAX_RENDER_PIXEL_RATIO, RENDER_ANTIALIAS } from '../config.js';
 
 // --- SCENE ---
 export const scene = new THREE.Scene();
@@ -23,13 +23,14 @@ camera.lookAt(0, 0, 0);
 export const renderer = new THREE.WebGLRenderer({
     canvas: document.getElementById('output_canvas'),
     alpha: true,
-    antialias: !IS_MOBILE,
+    antialias: RENDER_ANTIALIAS,
     powerPreference: 'high-performance'
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(IS_MOBILE ? 1 : Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_RENDER_PIXEL_RATIO));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
+console.log(`[T.A.R.D.I.S.] Renderer DPR: ${window.devicePixelRatio || 1} | PixelRatio usado: ${Math.min(window.devicePixelRatio || 1, MAX_RENDER_PIXEL_RATIO)} | Segmentos: ${EFFECTIVE_SEGMENTS}`);
 
 // --- GROUPS ---
 export const solarSystemGroup = new THREE.Group();
@@ -40,7 +41,7 @@ planetSurfaceGroup.visible = false;
 scene.add(planetSurfaceGroup);
 
 // --- SHARED GEOMETRY ---
-export const sharedSphereGeo = new THREE.SphereGeometry(1, GLOBE_SEGMENTS, GLOBE_SEGMENTS);
+export const sharedSphereGeo = new THREE.SphereGeometry(1, EFFECTIVE_SEGMENTS, EFFECTIVE_SEGMENTS);
 
 // --- TEXTURE LOADER ---
 export const texLoader = new THREE.TextureLoader();
@@ -63,5 +64,5 @@ export function handleResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     // Keep pixel ratio consistent after resize
-    renderer.setPixelRatio(IS_MOBILE ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_RENDER_PIXEL_RATIO));
 }

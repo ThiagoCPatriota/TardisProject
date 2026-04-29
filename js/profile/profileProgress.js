@@ -1,27 +1,9 @@
 // ============================================
 // T.A.R.D.I.S. — Profile Progress Sync
-// Mantém Pontos de Exploração e Fragmentos Estelares em public.profiles.
+// Sincroniza Nome de Explorador, Pontos de Exploração e Fragmentos Estelares.
 // ============================================
 import { supabase, getCurrentSession, onAuthStateChange } from '../auth/authService.js';
 import { loadAchievementState, getUnlockedCount } from '../achievements/achievementStore.js';
-
-const DEFAULT_AVATAR = {
-    base: 'explorer_01',
-    suit: 'basic_blue',
-    accessory: null,
-    aura: null,
-    frame: null,
-    title: null
-};
-
-const DEFAULT_COSMETICS = {
-    head: null,
-    outfit: null,
-    accessory: null,
-    aura: null,
-    frame: null,
-    title: null
-};
 
 let syncTimer = null;
 let isSyncing = false;
@@ -58,8 +40,6 @@ const ensureProfileRow = async (session) => {
         id: session.user.id,
         user_id: session.user.id,
         explorer_name: getExplorerName(session.user),
-        avatar: DEFAULT_AVATAR,
-        equipped_cosmetics: DEFAULT_COSMETICS,
         updated_at: new Date().toISOString()
     };
 
@@ -74,7 +54,7 @@ const ensureProfileRow = async (session) => {
 
     const { data, error: selectError } = await supabase
         .from('profiles')
-        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, equipped_cosmetics')
+        .select('id, user_id, explorer_name, exploration_points, star_fragments')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -114,7 +94,7 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
                 updated_at: new Date().toISOString()
             })
             .eq('id', session.user.id)
-            .select('exploration_points, star_fragments, explorer_name, avatar, equipped_cosmetics')
+            .select('exploration_points, star_fragments, explorer_name')
             .maybeSingle();
 
         if (error) throw error;
@@ -126,9 +106,7 @@ const syncProfileProgressNow = async (state = loadAchievementState()) => {
         emitProfilePoints({
             userId: session.user.id,
             explorerName: data?.explorer_name || getExplorerName(session.user),
-            unlockedCount: getUnlockedCount(state),
-            avatar: data?.avatar || DEFAULT_AVATAR,
-            equippedCosmetics: data?.equipped_cosmetics || DEFAULT_COSMETICS
+            unlockedCount: getUnlockedCount(state)
         });
 
         return data;

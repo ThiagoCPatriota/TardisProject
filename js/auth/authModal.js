@@ -405,11 +405,7 @@ const handleSubmit = async (event) => {
 
         updateNavSession(session);
         showAccountView(session);
-        const successMessage = data?.existingAccount
-            ? 'Essa conta já existia. Entramos com ela usando seu e-mail e senha.'
-            : (mode === 'signup' ? 'Conta de explorador criada com sucesso!' : 'Login realizado com sucesso!');
-
-        setMessage(successMessage, 'success');
+        setMessage(mode === 'signup' ? 'Conta de explorador criada com sucesso!' : 'Login realizado com sucesso!', 'success');
 
         window.dispatchEvent(new CustomEvent('tardis:auth-success', {
             detail: { session, mode }

@@ -55,13 +55,6 @@ const isExistingAccountResponse = (data) => {
     return Boolean(!data?.session && Array.isArray(identities) && identities.length === 0);
 };
 
-const isAlreadyRegisteredError = (error) => {
-    const message = (error?.message || '').toLowerCase();
-    return message.includes('already registered') ||
-        message.includes('already exists') ||
-        message.includes('user exists');
-};
-
 export const supabase = isSupabaseConfigured()
     ? createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
         auth: {
@@ -101,21 +94,13 @@ export const signUpWithEmail = async ({ email, password, explorerName = '', capt
         options
     });
 
-    if (error) {
-        if (isAlreadyRegisteredError(error)) {
-            const loginData = await signInWithEmail({ email: cleanEmail, password });
-            return { ...loginData, existingAccount: true };
-        }
-
-        throw error;
-    }
+    if (error) throw error;
 
     // Em alguns fluxos do Supabase, tentar cadastrar um e-mail que já existe
     // retorna um usuário sem sessão e sem identities para evitar enumeração de contas.
-    // Para o UX do T.A.R.D.I.S., se a senha estiver correta, tratamos isso como login.
+    // Cadastro e login devem permanecer separados.
     if (isExistingAccountResponse(data)) {
-        const loginData = await signInWithEmail({ email: cleanEmail, password });
-        return { ...loginData, existingAccount: true };
+        throw new Error('Essa conta já existe. Use a aba Login para entrar com esse e-mail e senha.');
     }
 
     rememberSession(data?.session || null);
