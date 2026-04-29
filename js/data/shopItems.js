@@ -65,8 +65,8 @@ export const SHOP_ITEMS = Object.freeze([
         type: 'title',
         slot: 'title',
         category: 'title',
-        label: 'Piloto do Vórtex',
-        description: 'Mostre que você sabe navegar por rotas instáveis do espaço-tempo.',
+        label: 'Companheiro do Doutor',
+        description: 'Para quem topa atravessar o tempo e o espaço ao lado do Doutor.',
         price: 360,
         rarity: 'épico',
         icon: '🌀'
@@ -76,8 +76,8 @@ export const SHOP_ITEMS = Object.freeze([
         type: 'title',
         slot: 'title',
         category: 'title',
-        label: 'Mestre do Vórtex',
-        description: 'Para exploradores que dominam as rotas do espaço-tempo.',
+        label: 'O Doutor',
+        description: 'Título lendário para quem transforma cada jornada em uma aventura pelo espaço-tempo.',
         price: 500,
         rarity: 'lendário',
         icon: '✨'

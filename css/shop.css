@@ -1206,3 +1206,77 @@ body.shop-open {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
   }
 }
+
+/* ============================================
+   T.A.R.D.I.S. — Loja Cósmica v44.5
+   Títulos temáticos e cards com descrição legível.
+   ============================================ */
+
+.cosmic-shop-page .shop-title-block h1 {
+  font-size: clamp(26px, 2.9vw, 40px) !important;
+  max-width: 820px !important;
+}
+
+.cosmic-shop-page .shop-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  gap: 15px !important;
+}
+
+.cosmic-shop-page .shop-item-card {
+  min-height: 286px !important;
+  grid-template-rows: auto auto auto auto !important;
+  overflow: hidden !important;
+}
+
+.cosmic-shop-page .shop-item-copy {
+  min-height: 92px !important;
+  overflow: visible !important;
+}
+
+.cosmic-shop-page .shop-item-copy h3 {
+  display: block !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.25 !important;
+}
+
+.cosmic-shop-page .shop-item-copy p {
+  -webkit-line-clamp: 3 !important;
+  min-height: calc(11.5px * 1.42 * 3) !important;
+  line-height: 1.42 !important;
+}
+
+.cosmic-shop-page .shop-item-card[data-shop-card-type="title"] {
+  min-height: 304px !important;
+}
+
+.cosmic-shop-page .shop-item-card[data-shop-card-type="title"] .shop-item-copy {
+  min-height: 112px !important;
+}
+
+.cosmic-shop-page .shop-item-card[data-shop-card-type="title"] .shop-item-copy p {
+  -webkit-line-clamp: 4 !important;
+  min-height: calc(11.5px * 1.42 * 4) !important;
+}
+
+@media (min-width: 1280px) {
+  .cosmic-shop-page .shop-grid {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+  }
+}
+
+@media (max-height: 720px) and (min-width: 821px) {
+  .cosmic-shop-page .shop-title-block h1 {
+    font-size: clamp(24px, 2.6vw, 34px) !important;
+  }
+
+  .cosmic-shop-page .shop-item-card {
+    min-height: 278px !important;
+  }
+
+  .cosmic-shop-page .shop-item-card[data-shop-card-type="title"] {
+    min-height: 292px !important;
+  }
+}

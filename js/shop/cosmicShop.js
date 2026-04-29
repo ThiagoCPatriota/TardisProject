@@ -43,7 +43,7 @@ const ensureShopStyles = () => {
         const link = document.createElement('link');
         link.id = SHOP_STYLES_ID;
         link.rel = 'stylesheet';
-        link.href = 'css/shop.css?v=44.4';
+        link.href = 'css/shop.css?v=44.5';
 
         let settled = false;
         const finish = () => {
@@ -233,7 +233,7 @@ const renderGrid = () => {
         const action = getItemAction(item);
 
         return `
-            <article class="shop-item-card rarity-${escapeHTML(item.rarity || 'comum')} ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}">
+            <article class="shop-item-card rarity-${escapeHTML(item.rarity || 'comum')} ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}" data-shop-card-type="${escapeHTML(item.type || '')}" data-shop-card-slot="${escapeHTML(item.slot || '')}">
                 <div class="shop-item-topline">
                     <span class="shop-item-icon" aria-hidden="true">${escapeHTML(item.icon || '✦')}</span>
                     <span class="shop-item-rarity">${escapeHTML(item.rarity || 'comum')}</span>
