@@ -26,6 +26,42 @@ let shopFilter = 'all';
 let currentProfile = null;
 let isLoading = false;
 let isMutating = false;
+let shopStylesPromise = null;
+
+const SHOP_STYLES_ID = 'tardis-cosmic-shop-styles';
+
+const ensureShopStyles = () => {
+    if (typeof document === 'undefined') return Promise.resolve(null);
+
+    const existing = document.getElementById(SHOP_STYLES_ID)
+        || document.querySelector('link[rel="stylesheet"][href*="css/shop.css"]');
+
+    if (existing) return Promise.resolve(existing);
+    if (shopStylesPromise) return shopStylesPromise;
+
+    shopStylesPromise = new Promise((resolve) => {
+        const link = document.createElement('link');
+        link.id = SHOP_STYLES_ID;
+        link.rel = 'stylesheet';
+        link.href = 'css/shop.css?v=44.4';
+
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve(link);
+        };
+
+        link.addEventListener('load', finish, { once: true });
+        link.addEventListener('error', finish, { once: true });
+        document.head.appendChild(link);
+
+        // Não deixa a loja travar caso o navegador bloqueie o evento load do CSS.
+        window.setTimeout(finish, 1200);
+    });
+
+    return shopStylesPromise;
+};
 
 const escapeHTML = (value = '') => String(value)
     .replaceAll('&', '&amp;')
@@ -73,7 +109,23 @@ const requestLoginForShop = () => {
 
 const getOwnedSet = () => new Set(getOwnedItemIds(currentProfile?.owned_cosmetics || []));
 
+const getStoredOwnedIds = () => normalizeOwnedCosmetics(currentProfile?.owned_cosmetics || []);
+
 const isEquipped = (item) => currentProfile?.equipped_cosmetics?.[item.slot] === item.id;
+
+const isFreeItem = (item) => Number(item?.price || 0) <= 0;
+
+const getActionVerb = (item) => {
+    if (item?.type === 'title' || item?.slot === 'title') return 'Usar título';
+    if (item?.type === 'frame' || item?.slot === 'frame') return 'Aplicar borda';
+    return 'Equipar';
+};
+
+const getProfileSelectColumns = () => 'id, user_id, explorer_name, exploration_points, star_fragments, avatar, owned_cosmetics, equipped_cosmetics';
+
+const mergeOwnedIds = (...collections) => [...new Set(collections
+    .flatMap((collection) => normalizeOwnedCosmetics(collection))
+    .filter(Boolean))];
 
 const getFilteredItems = () => {
     if (shopFilter === 'owned') {
@@ -90,8 +142,8 @@ const getItemAction = (item) => {
     const equipped = isEquipped(item);
     const canAfford = Number(currentProfile?.star_fragments || 0) >= Number(item.price || 0);
 
-    if (equipped) return { label: 'Equipado', action: 'none', disabled: true, className: 'equipped' };
-    if (owned) return { label: 'Equipar', action: 'equip', disabled: false, className: 'equip' };
+    if (equipped) return { label: 'Em uso', action: 'none', disabled: true, className: 'equipped' };
+    if (owned || isFreeItem(item)) return { label: getActionVerb(item), action: 'equip', disabled: false, className: 'equip' };
     if (!canAfford) return { label: 'Sem fragmentos', action: 'buy', disabled: true, className: 'locked' };
     return { label: `Comprar · ${formatPrice(item.price)} ✦`, action: 'buy', disabled: false, className: 'buy' };
 };
@@ -257,7 +309,7 @@ const loadProfile = async ({ silent = false } = {}) => {
 
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, user_id, explorer_name, exploration_points, star_fragments, avatar, owned_cosmetics, equipped_cosmetics')
+        .select(getProfileSelectColumns())
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -280,9 +332,57 @@ const applyReturnedProfile = async (data) => {
     return currentProfile;
 };
 
+const updateProfileCosmeticsDirectly = async ({ ownedCosmetics, equippedCosmetics }) => {
+    const session = await getCurrentSession();
+    if (!session?.user) {
+        requestLoginForShop();
+        return null;
+    }
+
+    const payload = {
+        owned_cosmetics: mergeOwnedIds(ownedCosmetics),
+        equipped_cosmetics: normalizeEquippedCosmetics(equippedCosmetics || {}),
+        updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .update(payload)
+        .eq('id', session.user.id)
+        .select(getProfileSelectColumns())
+        .maybeSingle();
+
+    if (error) throw error;
+    return applyReturnedProfile(data || { ...currentProfile, ...payload });
+};
+
+const equipItemDirectly = async (item) => {
+    const storedOwned = getStoredOwnedIds();
+    const nextOwned = mergeOwnedIds(storedOwned, [item.id]);
+    const nextEquipped = normalizeEquippedCosmetics({
+        ...(currentProfile?.equipped_cosmetics || {}),
+        [item.slot]: item.id
+    });
+
+    return updateProfileCosmeticsDirectly({
+        ownedCosmetics: nextOwned,
+        equippedCosmetics: nextEquipped
+    });
+};
+
 const purchaseItem = async (itemId) => {
     const item = getShopItem(itemId);
     if (!item || isMutating) return null;
+
+    if (isItemOwned(item.id, currentProfile?.owned_cosmetics || [])) {
+        setStatus(`${item.label} já está no seu inventário. ${isEquipped(item) ? 'Ele já está em uso.' : 'Aplicando agora...'}`, isEquipped(item) ? 'success' : 'info');
+        return isEquipped(item) ? currentProfile : equipItem(item.id);
+    }
+
+    if (isFreeItem(item)) {
+        setStatus(`${item.label} é gratuito. Adicionando ao inventário e aplicando...`, 'info');
+        return equipItem(item.id);
+    }
 
     isMutating = true;
     setStatus(`Comprando ${item.label}...`, 'info');
@@ -299,7 +399,7 @@ const purchaseItem = async (itemId) => {
         return profile;
     } catch (error) {
         console.warn('[CosmicShop] Falha ao comprar item:', error?.message || error);
-        setStatus('Não foi possível comprar. Execute docs/SUPABASE_COSMIC_SHOP_SETUP.sql no Supabase e confirme seus Fragmentos Estelares.', 'error');
+        setStatus('Não foi possível comprar. Confira seus Fragmentos Estelares e as funções SQL da Loja Cósmica.', 'error');
         return null;
     } finally {
         isMutating = false;
@@ -310,8 +410,24 @@ const equipItem = async (itemId) => {
     const item = getShopItem(itemId);
     if (!item || isMutating) return null;
 
+    if (isEquipped(item)) {
+        setStatus(`${item.label} já está em uso.`, 'success');
+        renderShop();
+        return currentProfile;
+    }
+
+    const owned = isItemOwned(item.id, currentProfile?.owned_cosmetics || []);
+    if (owned) {
+        setStatus(`${item.label} já está no seu inventário. Aplicando agora...`, 'info');
+    } else if (isFreeItem(item)) {
+        setStatus(`${item.label} é gratuito. Salvando no inventário e aplicando...`, 'info');
+    } else {
+        setStatus(`Compre ${item.label} antes de equipar.`, 'error');
+        renderShop();
+        return null;
+    }
+
     isMutating = true;
-    setStatus(`Equipando ${item.label}...`, 'info');
 
     try {
         const { data, error } = await supabase.rpc('equip_shop_item', {
@@ -322,18 +438,30 @@ const equipItem = async (itemId) => {
         if (error) throw error;
 
         const profile = await applyReturnedProfile(data);
-        setStatus(`${item.label} equipado com sucesso.`, 'success');
+        setStatus(`${item.label} aplicado com sucesso.`, 'success');
         return profile;
     } catch (error) {
-        console.warn('[CosmicShop] Falha ao equipar item:', error?.message || error);
-        setStatus('Não foi possível equipar. Verifique se o item está no inventário e se o SQL da loja foi executado.', 'error');
-        return null;
+        console.warn('[CosmicShop] RPC equip_shop_item falhou, tentando atualização direta:', error?.message || error);
+
+        try {
+            const profile = await equipItemDirectly(item);
+            setStatus(`${item.label} aplicado com sucesso.`, 'success');
+            return profile;
+        } catch (fallbackError) {
+            console.warn('[CosmicShop] Falha ao equipar item pelo fallback:', fallbackError?.message || fallbackError);
+            setStatus('Não foi possível aplicar este item. Confira as permissões da tabela profiles e tente atualizar a página.', 'error');
+            renderShop();
+            return null;
+        }
     } finally {
         isMutating = false;
     }
 };
 
 const handleItemAction = async (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+
     const button = event.target.closest?.('[data-shop-action]');
     if (!button || !shopPage?.contains(button)) return;
 
@@ -342,7 +470,8 @@ const handleItemAction = async (event) => {
 
     if (action === 'buy') {
         const profile = await purchaseItem(itemId);
-        if (profile && isItemOwned(itemId, profile.owned_cosmetics)) await equipItem(itemId);
+        const item = getShopItem(itemId);
+        if (profile && item && !isEquipped(item) && isItemOwned(itemId, profile.owned_cosmetics)) await equipItem(itemId);
         return;
     }
 
@@ -356,6 +485,8 @@ const bindShopEvents = () => {
 
     shopPage.dataset.shopEventsBound = 'true';
 
+    // Listener em modo capture: os cliques nos botões internos precisam ser
+    // capturados antes de qualquer camada visual parar a propagação do evento.
     shopPage.addEventListener('click', async (event) => {
         const closeTrigger = event.target.closest?.('[data-shop-close]');
         if (closeTrigger && shopPage.contains(closeTrigger)) {
@@ -374,13 +505,13 @@ const bindShopEvents = () => {
             return;
         }
 
-        await handleItemAction(event);
-    });
-
-    shopPage.querySelector('.shop-shell')?.addEventListener('click', (event) => {
-        // Impede que cliques dentro da loja sejam tratados como clique no backdrop.
-        event.stopPropagation();
-    });
+        const actionButton = event.target.closest?.('[data-shop-action]');
+        if (actionButton && shopPage.contains(actionButton)) {
+            event.preventDefault();
+            event.stopPropagation();
+            await handleItemAction(event);
+        }
+    }, true);
 
     shopPage.addEventListener('wheel', (event) => event.stopPropagation(), { passive: true });
     shopPage.addEventListener('touchmove', (event) => event.stopPropagation(), { passive: true });
@@ -425,8 +556,8 @@ const createShopPage = () => {
                         <span class="shop-kicker">LOJA CÓSMICA</span>
                         <span class="shop-live-badge">Mercado de cosméticos</span>
                     </div>
-                    <h1 id="shop-title">Monte seu visual de explorador</h1>
-                    <p>Compre títulos, cabelos, chapéus, trajes e bordas com Fragmentos Estelares. O que você equipar aparece no Perfil e destaca sua presença no Ranking.</p>
+                    <h1 id="shop-title">Loja Cósmica</h1>
+                    <p>Compre e equipe títulos, cabelos, chapéus, trajes e bordas. Tudo aparece no Perfil e no Ranking.</p>
                 </div>
                 <button class="shop-close" id="shop-close" data-shop-close="true" type="button" aria-label="Fechar loja">✕</button>
             </header>
@@ -488,12 +619,13 @@ export const openCosmicShop = async (event) => {
         return;
     }
 
+    await ensureShopStyles();
     createShopPage();
     window.TardisAchievements?.close?.();
     window.TardisRanking?.close?.();
 
     shopPage.hidden = false;
-    shopPage.style.display = 'block';
+    shopPage.style.removeProperty('display');
     shopPage.classList.add('active');
     shopPage.setAttribute('aria-hidden', 'false');
     document.body.classList.add('shop-open');
@@ -521,6 +653,8 @@ export function closeCosmicShop() {
 }
 
 export const initCosmicShop = () => {
+    ensureShopStyles();
+
     // A loja agora é criada de forma preguiçosa, apenas quando o usuário clica em
     // "Loja Cósmica". Isso impede que o modal apareça sozinho no carregamento.
     document.addEventListener('keydown', (event) => {
